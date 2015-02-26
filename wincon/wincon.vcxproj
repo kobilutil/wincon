@@ -77,9 +77,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="ConsoleOverlayWindow.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SelectionHelper.h" />
