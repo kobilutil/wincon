@@ -311,70 +311,69 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 
 	auto currentConsoleSize = GetWindowRect(_hWndConsole).size();
 
-	auto newCellsDelta = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
+	auto addedCells = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
 	//auto newCellsDelta = requestedWindowSize / _consoleHelper.CellSize() - currentConsoleSize / _consoleHelper.CellSize();
 
-	auto bufferWindowRect = _consoleHelper.BufferView();
-	auto bufferSize = _consoleHelper.BufferSize();
+	auto currBufferView = _consoleHelper.BufferView();
+	auto currBufferSize = _consoleHelper.BufferSize();
 	auto caretPosition = _consoleHelper.CaretPos();
 
-	bool noVScroll = (bufferSize.height() == bufferWindowRect.height());
+	bool noVScroll = (currBufferSize.height() == currBufferView.height());
 
-	auto bufferWindowRect2 = bufferWindowRect;
-	bufferWindowRect2 += newCellsDelta;
+	auto newBufferView = currBufferView + addedCells;
 
 	// the new buffer will grow or shrink in width but retain the same height
-	auto bufferSize2 = bufferSize;
-	bufferSize2.width() += newCellsDelta.width();
+	auto newBufferSize = currBufferSize;
+	newBufferSize.width() += addedCells.width();
 
 	if (noVScroll)
-		bufferSize2.height() += newCellsDelta.height();
+		newBufferSize.height() += addedCells.height();
 	else
 	{
 		// move console's window upward a bit if it is outside the console buffer.
-		if (bufferWindowRect2.bottom() > bufferSize2.height())
-			bufferWindowRect2.top() -= bufferWindowRect2.bottom() - bufferSize2.height();
+		if (newBufferView.bottom() > newBufferSize.height())
+			newBufferView.top() -= newBufferView.bottom() - newBufferSize.height();
 
 		// if the caret is currently in the visible buffer window then make sure that it will remain visible in the new visible buffer window
-		if (bufferWindowRect.contains(caretPosition))
+		if (currBufferView.contains(caretPosition))
 		{
 			// if the caret is below the new window position, move the window downwards so that the caret will be displayed on the 
 			// last line of the window.
-			if (caretPosition.y() >= bufferWindowRect2.bottom())
-				bufferWindowRect2.top() += caretPosition.y() - bufferWindowRect2.bottom();
+			if (caretPosition.y() >= newBufferView.bottom())
+				newBufferView.top() += caretPosition.y() - newBufferView.bottom();
 		}
 	}
 
-	if (bufferWindowRect2.width() < 20)
-		bufferWindowRect2.width() = 20;
+	if (newBufferView.width() < 20)
+		newBufferView.width() = 20;
 
-	if (bufferWindowRect2.height() < 20)
-		bufferWindowRect2.height() = 20;
+	if (newBufferView.height() < 20)
+		newBufferView.height() = 20;
 
-	if (bufferSize2.width() < 20)
-		bufferSize2.width() = 20;
+	if (newBufferSize.width() < 20)
+		newBufferSize.width() = 20;
 
-	if (bufferSize2.height() < 20)
-		bufferSize2.height() = 20;
+	if (newBufferSize.height() < 20)
+		newBufferSize.height() = 20;
 
 	// update the console with the new size but only if something actually changed
-	if ((bufferSize != bufferSize2) || (bufferWindowRect != bufferWindowRect2))
+	if ((currBufferSize != newBufferSize) || (currBufferView != newBufferView))
 	{
 		rectangle minRect{
-			bufferWindowRect2.left(),
-			bufferWindowRect2.top(),
-			std::min(bufferWindowRect.width(), bufferWindowRect2.width()),
-			std::min(bufferWindowRect.height(), bufferWindowRect2.height()),
+			newBufferView.left(),
+			newBufferView.top(),
+			std::min(currBufferView.width(), newBufferView.width()),
+			std::min(currBufferView.height(), newBufferView.height()),
 		};
 
-		if (minRect != bufferWindowRect)
+		if (minRect != currBufferView)
 			if (!_consoleHelper.BufferView(minRect))
 				debug_print("SetConsoleWindowInfo failed, err=%#x\n", ::GetLastError());
 
-		if (!_consoleHelper.BufferSize(bufferSize2))
-			debug_print("SetConsoleScreenBufferSize failed, %dx%d err=%#x\n", bufferSize2.width(), bufferSize2.height(), ::GetLastError());
+		if (!_consoleHelper.BufferSize(newBufferSize))
+			debug_print("SetConsoleScreencurrBufferSize failed, %dx%d err=%#x\n", newBufferSize.width(), newBufferSize.height(), ::GetLastError());
 
-		if (!_consoleHelper.BufferView(bufferWindowRect2))
+		if (!_consoleHelper.BufferView(newBufferView))
 			debug_print("SetConsoleWindowInfo2 failed, err=%#x\n", ::GetLastError());
 
 		_selectionView.AdjustPosition();
