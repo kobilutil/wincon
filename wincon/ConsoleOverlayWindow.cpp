@@ -318,14 +318,13 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 	auto currBufferSize = _consoleHelper.BufferSize();
 	auto caretPosition = _consoleHelper.CaretPos();
 
-	bool noVScroll = (currBufferSize.height() == currBufferView.height());
-
 	auto newBufferView = currBufferView + addedCells;
 
 	// the new buffer will grow or shrink in width but retain the same height
 	auto newBufferSize = currBufferSize;
 	newBufferSize.width() += addedCells.width();
 
+	bool noVScroll = (currBufferSize.height() == currBufferView.height());
 	if (noVScroll)
 		newBufferSize.height() += addedCells.height();
 	else
@@ -366,6 +365,8 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 			std::min(currBufferView.height(), newBufferView.height()),
 		};
 
+		::SendMessage(_hWndConsole, WM_SETREDRAW, FALSE, 0);
+
 		if (minRect != currBufferView)
 			if (!_consoleHelper.BufferView(minRect))
 				debug_print("SetConsoleWindowInfo failed, err=%#x\n", ::GetLastError());
@@ -375,6 +376,9 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 
 		if (!_consoleHelper.BufferView(newBufferView))
 			debug_print("SetConsoleWindowInfo2 failed, err=%#x\n", ::GetLastError());
+
+		::SendMessage(_hWndConsole, WM_SETREDRAW, TRUE, 0);
+		::RedrawWindow(_hWndConsole, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 
 		_selectionView.AdjustPosition();
 	}
