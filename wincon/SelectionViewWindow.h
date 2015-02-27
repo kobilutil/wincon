@@ -32,4 +32,6 @@ private:
 
 	ConsoleHelper&		_consoleHelper;
 	SelectionHelper&	_selectionHelper;
+
+	scoped_gdi_region	_selectionRegion;
 };

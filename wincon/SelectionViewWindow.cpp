@@ -69,6 +69,28 @@ void SelectionViewWindow::AdjustPosition()
 
 void SelectionViewWindow::Refresh()
 {
+	if (_selectionHelper.IsShowing())
+	{
+		auto cellSize = _consoleHelper.CellSize();
+
+		auto p1 = _consoleHelper.MapCellToPixel(_selectionHelper.p1());
+		auto p2 = _consoleHelper.MapCellToPixel(_selectionHelper.p2());
+
+		auto clientArea = GetClientRect(_hWnd);
+		scoped_gdi_region region{
+			::CreateRectRgn(0, p1.y(), clientArea.right(), p2.y() + cellSize.height())
+		};
+
+		CutoffRegion(region, rectangle(0, p1.y(), p1.x(), cellSize.height()));
+		CutoffRegion(region, rectangle(p2.x() + cellSize.width(), p2.y(), clientArea.right() - (p2.x() + cellSize.width()), cellSize.height()));
+
+		_selectionRegion = std::move(region);
+	}
+	else
+	{
+		_selectionRegion.reset();
+	}
+
 	::InvalidateRect(_hWnd, nullptr, TRUE);
 }
 
@@ -101,32 +123,12 @@ void SelectionViewWindow::OnWM_Paint(HWND hWnd)
 		::CreateRectRgn(clientArea.left(), clientArea.top(), clientArea.right(), clientArea.bottom())
 	};
 
-	if (_selectionHelper.IsShowing())
+	if (_selectionRegion)
 	{
-		//auto offset = _consoleHelper.MapCellToPixel(_consoleHelper.BufferView().top_left());
-		auto offset = _consoleHelper.BufferView().top_left();
-
-		//::SetViewportOrgEx(ps.hdc, -offset.x(), -offset.y(), NULL);
-
-		auto cellSize = _consoleHelper.CellSize();
-
-		auto p1 = _consoleHelper.MapCellToPixel(_selectionHelper.p1() - offset);
-		auto p2 = _consoleHelper.MapCellToPixel(_selectionHelper.p2() - offset);
-
-		scoped_gdi_region region{
-			::CreateRectRgn(0, p1.y(), clientArea.right(), p2.y() + cellSize.height())
-		};
-
-		CutoffRegion(region, rectangle(0, p1.y(), p1.x(), cellSize.height()));
-		CutoffRegion(region, rectangle(p2.x() + cellSize.width(), p2.y(), clientArea.right() - (p2.x() + cellSize.width()), cellSize.height()));
-
-		//RECT rect{ _p1.x(), _p1.y(), _p2.x(), _p2.y() };
-		//::FillRect(ps.hdc, &rect, ::GetSysColorBrush(COLOR_HIGHLIGHT));
-
-		::FillRgn(ps.hdc, region.get(), ::GetSysColorBrush(COLOR_HIGHLIGHT));
+		::FillRgn(ps.hdc, _selectionRegion.get(), ::GetSysColorBrush(COLOR_HIGHLIGHT));
 
 		// cut off the selection region from the background region
-		::CombineRgn(bgregion.get(), bgregion.get(), region.get(), RGN_DIFF);
+		::CombineRgn(bgregion.get(), bgregion.get(), _selectionRegion.get(), RGN_DIFF);
 	}
 
 	::FillRgn(ps.hdc, bgregion.get(), GetStockBrush(BLACK_BRUSH));

@@ -61,7 +61,7 @@ point ConsoleHelper::MapPixelToCell(point const& p)
 
 point ConsoleHelper::MapCellToPixel(point const& p)
 {
-	return p * _cellSize;
+	return (p - _bufferView.top_left()) * _cellSize;
 }
 
 bool ConsoleHelper::WriteInput(::INPUT_RECORD const& inp)
