@@ -314,15 +314,6 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 	auto newCellsDelta = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
 	//auto newCellsDelta = requestedWindowSize / _consoleHelper.CellSize() - currentConsoleSize / _consoleHelper.CellSize();
 
-	auto pp = requestedWindowSize;
-	requestedWindowSize = currentConsoleSize + newCellsDelta * _consoleHelper.CellSize();
-
-	debug_print("ResizeConsole: curr=%dx%d, req=%dx%d, adj=%dx%d, delta=%dx%d\n",
-		currentConsoleSize.width(), currentConsoleSize.height(),
-		pp.width(), pp.height(),
-		requestedWindowSize.width(), requestedWindowSize.height(),
-		newCellsDelta.width(), newCellsDelta.height());
-
 	auto bufferWindowRect = _consoleHelper.BufferView();
 	auto bufferSize = _consoleHelper.BufferSize();
 	auto caretPosition = _consoleHelper.CaretPos();
