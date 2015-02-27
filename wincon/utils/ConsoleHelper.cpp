@@ -22,6 +22,8 @@ bool ConsoleHelper::RefreshInfo()
 	_bufferView << csbi.srWindow;
 
 	_cellSize << GetConsoleFontSize(_hConOut.get(), fontInfo.nFont);
+
+	_caretPos << csbi.dwCursorPosition;
 	return true;
 }
 
