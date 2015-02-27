@@ -101,7 +101,7 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			}
 			break;
 		case EVENT_CONSOLE_UPDATE_SCROLL:
-			debug_print("CONSOLE_SCROLL - %ld %ld\n", idObject, idChild);
+			//debug_print("CONSOLE_SCROLL - %ld %ld\n", idObject, idChild);
 			break;
 		case EVENT_CONSOLE_LAYOUT:
 			if (_selectionHelper.IsShowing())
@@ -320,40 +320,39 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 
 	auto newBufferView = currBufferView + addedCells;
 
-	// the new buffer will grow or shrink in width but retain the same height
-	auto newBufferSize = currBufferSize;
-	newBufferSize.width() += addedCells.width();
-
-	bool noVScroll = (currBufferSize.height() == currBufferView.height());
-	if (noVScroll)
-		newBufferSize.height() += addedCells.height();
-	else
-	{
-		// move console's window upward a bit if it is outside the console buffer.
-		if (newBufferView.bottom() > newBufferSize.height())
-			newBufferView.top() -= newBufferView.bottom() - newBufferSize.height();
-
-		// if the caret is currently in the visible buffer window then make sure that it will remain visible in the new visible buffer window
-		if (currBufferView.contains(caretPosition))
-		{
-			// if the caret is below the new window position, move the window downwards so that the caret will be displayed on the 
-			// last line of the window.
-			if (caretPosition.y() >= newBufferView.bottom())
-				newBufferView.top() += caretPosition.y() - newBufferView.bottom();
-		}
-	}
-
 	if (newBufferView.width() < 20)
 		newBufferView.width() = 20;
 
-	if (newBufferView.height() < 20)
-		newBufferView.height() = 20;
+	if (newBufferView.height() < 10)
+		newBufferView.height() = 10;
 
-	if (newBufferSize.width() < 20)
-		newBufferSize.width() = 20;
+	// the new buffer will be atleast the size of the view
+	auto newBufferSize = newBufferView.size();
 
-	if (newBufferSize.height() < 20)
-		newBufferSize.height() = 20;
+	// if currently the console has a vertical scrollbar..
+	// TODO: and what about a horizontal bar?
+	bool isVScroll = (currBufferSize.height() != currBufferView.height());
+	if (isVScroll)
+	{
+		// match the new buffer scroll height to be the same as before.
+		newBufferSize.height() = currBufferSize.height();
+
+		// if the new console's buffer view might be positioned outside the buffer,
+		// then adjust its scroll position to be at the bottom of the buffer.
+		if (newBufferView.bottom() > newBufferSize.height())
+			newBufferView.top() -= newBufferView.bottom() - newBufferSize.height();
+
+		// if the caret is currently in the visible buffer window then make sure that 
+		// it still be visible in the new buffer view.
+		if (currBufferView.contains(caretPosition))
+		{
+			// if the caret is below the new buffer's view scroll position, then scroll 
+			// the view downwards so that the caret will be displayed on the last visible
+			// line of the buffer's view.
+			if (caretPosition.y() >= newBufferView.bottom()) // basic_rect<> is exclusive
+				newBufferView.top() += caretPosition.y() - newBufferView.bottom() + 1;
+		}
+	}
 
 	// update the console with the new size but only if something actually changed
 	if ((currBufferSize != newBufferSize) || (currBufferView != newBufferView))
