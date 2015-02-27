@@ -183,7 +183,19 @@ public:
 	template <typename U>
 	bool contains(basic_point<U> const& p) const
 	{
-		return ((top_left() <= p) && (p < bottom_right()));
+		// TODO: explain why the following doesn't work (because p2 is exclusive)
+		//return ((top_left() <= p) && (p < bottom_right()));
+
+		if (p < top_left())
+			return false;
+
+		auto bottomRight = bottom_right();
+
+		// note: this is not the same as (p >= bottomRight)
+		if ((p.x() >= bottomRight.x()) || (p.y() >= bottomRight.y()))
+			return false;
+
+		return true;
 	}
 
 	template <typename U>
