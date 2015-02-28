@@ -127,6 +127,8 @@ void SelectionViewWindow::OnWM_Paint(HWND hWnd)
 	{
 		::FillRgn(ps.hdc, _selectionRegion.get(), ::GetSysColorBrush(COLOR_HIGHLIGHT));
 
+		::FrameRgn(ps.hdc, _selectionRegion.get(), GetStockBrush(WHITE_BRUSH), 1, 1);
+
 		// cut off the selection region from the background region
 		::CombineRgn(bgregion.get(), bgregion.get(), _selectionRegion.get(), RGN_DIFF);
 	}
