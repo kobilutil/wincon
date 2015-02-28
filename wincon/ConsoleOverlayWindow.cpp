@@ -338,21 +338,19 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 		// match the new buffer scroll height to be the same as before.
 		newBufferSize.height() = currBufferSize.height();
 
-		// if the new console's buffer view might be positioned outside the buffer,
-		// then adjust its scroll position to be at the bottom of the buffer.
-		if (newBufferView.bottom() > newBufferSize.height())
-			newBufferView.top() -= newBufferView.bottom() - newBufferSize.height();
+		// if the caret is currently visible, but due to user shrinking the height of the
+		// console for example the caret wont be seen in the new buffer's view, then in
+		// that case adjust the view so that the caret will be seen at the last row.
+		if (currBufferView.contains(caretPosition) && !newBufferView.contains(caretPosition))
+			newBufferView.top() = caretPosition.y() - newBufferView.height() + 1;
 
-		// if the caret is currently in the visible buffer window then make sure that 
-		// it still be visible in the new buffer view.
-		if (currBufferView.contains(caretPosition))
-		{
-			// if the caret is below the new buffer's view scroll position, then scroll 
-			// the view downwards so that the caret will be displayed on the last visible
-			// line of the buffer's view.
-			if (caretPosition.y() >= newBufferView.bottom()) // basic_rect<> is exclusive
-				newBufferView.top() += caretPosition.y() - newBufferView.bottom() + 1;
-		}
+		// align the buffer's view to the top of the buffer is needed.
+		if (newBufferView.top() < 0)
+			newBufferView.top() = 0;
+
+		// align the buffer's view to the bottom of the buffer is needed.
+		if (newBufferView.bottom() > newBufferSize.height())
+			newBufferView.top() = newBufferSize.height() - newBufferView.height();
 	}
 
 	// update the console with the new size but only if something actually changed
