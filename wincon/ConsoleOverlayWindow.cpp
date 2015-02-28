@@ -312,7 +312,8 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 	auto currentConsoleSize = GetWindowRect(_hWndConsole).size();
 
 	auto addedCells = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
-	//auto newCellsDelta = requestedWindowSize / _consoleHelper.CellSize() - currentConsoleSize / _consoleHelper.CellSize();
+	if (!addedCells)
+		return;
 
 	auto currBufferView = _consoleHelper.BufferView();
 	auto currBufferSize = _consoleHelper.BufferSize();

@@ -28,6 +28,8 @@ public:
 		return *this;
 	}
 
+	explicit operator bool() const	{ return _w || _h; }
+
 	value_type& width()		{ return _w; }
 	value_type& height()	{ return _h; }
 
