@@ -481,23 +481,22 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 		return;
 	}
 
-	auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
-
 	if (_selectionHelper.IsSelecting())
 	{
 		_consoleHelper.RefreshInfo();
 
+		auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
 		auto mouseCellPos = _consoleHelper.MapPixelToCell(mousePixelPos);
 
-		_selectionHelper.ExtendTo(mouseCellPos);
+		if (!_selectionHelper.ExtendTo(mouseCellPos)) 
+			// ExtendTo returns false if there was no change
+			return;
 
 		debug_print("selection %d,%d - %d,%d\n", 
 			_selectionHelper.p1().x(), _selectionHelper.p1().y(),
 			_selectionHelper.p2().x(), _selectionHelper.p2().y());
 
 		_selectionView.Refresh();
-
-		return;
 	}
 }
 
