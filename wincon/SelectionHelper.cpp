@@ -78,7 +78,7 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 
 	_isShowing = (_p1 != _p2);
 
-	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
+	debug_print("SelectionHelper::Start - mode=%d, anchor=%d,%d\n", _mode, _anchorCell.x(), _anchorCell.y());
 }
 
 bool SelectionHelper::ExtendTo(point const& p)
@@ -139,7 +139,7 @@ bool SelectionHelper::ExtendTo(point const& p)
 	_p2 = p2;
 	_isShowing = (_p1 != _p2);
 
-	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
+	debug_print("SelectionHelper::ExtendTo - mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 
 	return true;
 }
@@ -162,7 +162,7 @@ void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, 
 		break;
 
 	case SelectionHelper::SELECT_LINE:
-		ReadOutputLineToCache(_p2.y());
+		ReadOutputLineToCache(p2.y());
 		p1.x() = 0;
 		p2.x() = FindEOL(_cachedLine);
 		if (p2.x() == 0)
