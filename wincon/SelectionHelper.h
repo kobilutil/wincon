@@ -44,7 +44,8 @@ public:
 	bool CopyToClipboard(HWND hWndOwner);
 
 private:
-	bool	ReadOutputLineToCache(int y);
+	bool ReadOutputLineToCache(int y);
+	void AdjustSelectionAccordingToMode(enum Mode mode, point& p1, point& p2);
 
 private:
 	bool			_isSelecting;

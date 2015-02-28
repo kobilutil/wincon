@@ -70,27 +70,13 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 	Clear();
 
 	_isSelecting = true;
-	_isShowing = true;
 	_anchorCell = anchor;
 	_p1 = _p2 = _anchorCell;
 	_mode = mode;
 
-	switch (mode)
-	{
-	case SelectionHelper::SELECT_CHAR:
-		_isShowing = false;
-		break;
-	case SelectionHelper::SELECT_WORD:
-		ReadOutputLineToCache(_anchorCell.y());
-		_p1.x() = FindWordLeftBoundary(_cachedLine, _anchorCell.x());
-		_p2.x() = FindWordRightBoundary(_cachedLine, _anchorCell.x());
-		break;
-	case SelectionHelper::SELECT_LINE:
-		ReadOutputLineToCache(_anchorCell.y());
-		_p1.x() = 0;
-		_p2.x() = FindEOL(_cachedLine);
-		break;
-	}
+	AdjustSelectionAccordingToMode(_mode, _p1, _p2);
+
+	_isShowing = (_p1 != _p2);
 
 	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 }
@@ -144,41 +130,45 @@ bool SelectionHelper::ExtendTo(point const& p)
 		p2 = mouseCellPos;
 	}
 
-	switch (_mode)
-	{
-		case SelectionHelper::SELECT_CHAR:
-			_isShowing = (p1 != p2);
-			break;
-		case SelectionHelper::SELECT_WORD:
-		{
-			ReadOutputLineToCache(p1.y());
-			p1.x() = FindWordLeftBoundary(_cachedLine, p1.x());
-
-			if (p2.y() != p1.y())
-				ReadOutputLineToCache(p2.y());
-			p2.x() = FindWordRightBoundary(_cachedLine, p2.x());
-
-			break;
-		}
-		case SelectionHelper::SELECT_LINE:
-		{
-			ReadOutputLineToCache(_p2.y());
-
-			p1.x() = 0;
-			p2.x() = FindEOL(_cachedLine);
-			break;
-		}
-	}
+	AdjustSelectionAccordingToMode(_mode, p1, p2);
 
 	if ((p1 == _p1) && (p2 == _p2))
 		return false;
 
 	_p1 = p1;
 	_p2 = p2;
+	_isShowing = (_p1 != _p2);
 
 	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 
 	return true;
+}
+
+void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, point& p2)
+{
+	switch (mode)
+	{
+	case SelectionHelper::SELECT_CHAR:
+		break;
+
+	case SelectionHelper::SELECT_WORD:
+		ReadOutputLineToCache(p1.y());
+		p1.x() = FindWordLeftBoundary(_cachedLine, p1.x());
+
+		if (p2.y() != p1.y())
+			ReadOutputLineToCache(p2.y());
+		p2.x() = FindWordRightBoundary(_cachedLine, p2.x());
+
+		break;
+
+	case SelectionHelper::SELECT_LINE:
+		ReadOutputLineToCache(_p2.y());
+		p1.x() = 0;
+		p2.x() = FindEOL(_cachedLine);
+		if (p2.x() == 0)
+			p2.x() = _cachedLine.size() - 1;
+		break;
+	}
 }
 
 void SelectionHelper::Finish()
