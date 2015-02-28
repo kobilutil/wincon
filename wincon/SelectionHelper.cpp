@@ -95,22 +95,6 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 }
 
-void SelectionHelper::Continue(point const& p)
-{
-	if (_isShowing)
-	{
-		if (p > _anchorCell)
-			_p2 = p;
-		else
-			_p1 = p;
-	}
-	else
-	{
-		_anchorCell = _p1 = _p2 = p;
-		_isShowing = true;
-	}
-}
-
 bool SelectionHelper::ExtendTo(point const& p)
 {
 	auto mouseCellPos = p;

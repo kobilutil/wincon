@@ -19,7 +19,6 @@ public:
 	};
 
 	void Start(point const& anchor, enum Mode mode);
-	void Continue(point const& p);
 	bool ExtendTo(point const& p);
 
 	void Finish();
