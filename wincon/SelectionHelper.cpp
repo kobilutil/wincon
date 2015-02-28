@@ -247,6 +247,7 @@ bool SelectionHelper::CopyToClipboard(HWND hWndOwner)
 		}
 
 		// copy the unicode chars to the memmory buffer
+		// TODO: there is probably a bug here regarding handling COMMON_LVB_LEADING_BYTE/COMMON_LVB_TRAILING_BYTE
 		for (int i = begin; i <= end; ++i)
 			*(pMemIt++) = _cachedLine[i].Char.UnicodeChar;
 
