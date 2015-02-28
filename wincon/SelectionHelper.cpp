@@ -1,54 +1,48 @@
 #include "stdafx.h"
 #include "SelectionHelper.h"
+#include <algorithm>
 
 enum CharCategory
 {
-	CHAR_CAT_ALPHANUMERIC = 1,
+	CHAR_CAT_ALPHANUM = 1,
 	CHAR_CAT_SPACE,
 	CHAR_CAT_OTHER
 };
 
 static int GetCharCategory(WCHAR c)
 {
-	return ::IsCharAlphaNumeric(c) ? CHAR_CAT_ALPHANUMERIC : isspace(c) ? CHAR_CAT_SPACE : CHAR_CAT_OTHER;
+	return ::IsCharAlphaNumeric(c) ? CHAR_CAT_ALPHANUM : isspace(c) ? CHAR_CAT_SPACE : CHAR_CAT_OTHER;
+}
+
+static int GetCharCategory(CHAR_INFO ci)
+{
+	return GetCharCategory(ci.Char.UnicodeChar);
 }
 
 template <typename T>
-static size_t FindWordHelper(T begin, T end)
+static T FindWordBoundaryHelper(T begin, T end)
 {
-	auto it = begin;
-	auto j = 0;
-	int cat = 0;
-
-	while (it != end)
+	auto cat = GetCharCategory(*begin);
+	return std::find_if(++begin, end, [cat](decltype(*begin) c)
 	{
-		auto c = it->Char.UnicodeChar;
-		auto cat2 = GetCharCategory(c);
-
-		if (cat == 0)
-			cat = cat2;
-		else
-			if (cat != cat2)
-				break;
-			else
-				++j;
-
-		++it;
-	}
-
-	return j;
+		return cat != GetCharCategory(c);
+	});
 }
 
-static size_t FindWordLeft(std::vector<CHAR_INFO> const& line, size_t pos)
+static size_t FindWordLeftBoundary(std::vector<CHAR_INFO> const& line, size_t pos)
 {
-	auto offset = FindWordHelper(rbegin(line) + (line.size() - pos - 1), rend(line));
-	return pos - offset;
+	auto begin = std::rbegin(line) + (line.size() - pos - 1);
+	auto end = std::rend(line);
+	auto it = FindWordBoundaryHelper(begin, end);
+	return pos - (it - 1 - begin);
 }
 
-static size_t FindWordRight(std::vector<CHAR_INFO> const& line, size_t pos)
+static size_t FindWordRightBoundary(std::vector<CHAR_INFO> const& line, size_t pos)
 {
-	auto offset = FindWordHelper(begin(line) + pos, end(line));
-	return pos + offset;
+	auto begin = std::begin(line) + pos;
+	auto end = std::end(line);
+	auto it = FindWordBoundaryHelper(begin, end);
+	return pos + (it - 1 - begin);
 }
 
 static size_t FindEOL(std::vector<CHAR_INFO> const& line)
@@ -58,7 +52,7 @@ static size_t FindEOL(std::vector<CHAR_INFO> const& line)
 	if (GetCharCategory(line[lastIndex].Char.UnicodeChar) != CHAR_CAT_SPACE)
 		return lastIndex;
 
-	return FindWordLeft(line, lastIndex);
+	return FindWordLeftBoundary(line, lastIndex);
 }
 
 
@@ -88,8 +82,8 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 		break;
 	case SelectionHelper::SELECT_WORD:
 		ReadOutputLineToCache(_anchorCell.y());
-		_p1.x() = FindWordLeft(_cachedLine, _anchorCell.x());
-		_p2.x() = FindWordRight(_cachedLine, _anchorCell.x());
+		_p1.x() = FindWordLeftBoundary(_cachedLine, _anchorCell.x());
+		_p2.x() = FindWordRightBoundary(_cachedLine, _anchorCell.x());
 		break;
 	case SelectionHelper::SELECT_LINE:
 		ReadOutputLineToCache(_anchorCell.y());
@@ -97,6 +91,8 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 		_p2.x() = FindEOL(_cachedLine);
 		break;
 	}
+
+	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 }
 
 void SelectionHelper::Continue(point const& p)
@@ -172,10 +168,11 @@ bool SelectionHelper::ExtendTo(point const& p)
 		case SelectionHelper::SELECT_WORD:
 		{
 			ReadOutputLineToCache(p1.y());
-			p1.x() = FindWordLeft(_cachedLine, p1.x());
+			p1.x() = FindWordLeftBoundary(_cachedLine, p1.x());
 
-			ReadOutputLineToCache(p2.y());
-			p2.x() = FindWordRight(_cachedLine, p2.x());
+			if (p2.y() != p1.y())
+				ReadOutputLineToCache(p2.y());
+			p2.x() = FindWordRightBoundary(_cachedLine, p2.x());
 
 			break;
 		}
@@ -194,6 +191,8 @@ bool SelectionHelper::ExtendTo(point const& p)
 
 	_p1 = p1;
 	_p2 = p2;
+
+	debug_print("selection mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
 
 	return true;
 }
