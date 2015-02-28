@@ -81,19 +81,21 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 	_p1 = _p2 = _anchorCell;
 	_mode = mode;
 
-	if (mode == SelectionHelper::SELECT_WORD)
+	switch (mode)
 	{
+	case SelectionHelper::SELECT_CHAR:
+		_isShowing = false;
+		break;
+	case SelectionHelper::SELECT_WORD:
 		ReadOutputLineToCache(_anchorCell.y());
-
 		_p1.x() = FindWordLeft(_cachedLine, _anchorCell.x());
 		_p2.x() = FindWordRight(_cachedLine, _anchorCell.x());
-	}
-	else if (mode == SelectionHelper::SELECT_LINE)
-	{
+		break;
+	case SelectionHelper::SELECT_LINE:
 		ReadOutputLineToCache(_anchorCell.y());
-
 		_p1.x() = 0;
 		_p2.x() = FindEOL(_cachedLine);
+		break;
 	}
 }
 
@@ -165,6 +167,7 @@ bool SelectionHelper::ExtendTo(point const& p)
 	switch (_mode)
 	{
 		case SelectionHelper::SELECT_CHAR:
+			_isShowing = (p1 != p2);
 			break;
 		case SelectionHelper::SELECT_WORD:
 		{
