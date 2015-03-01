@@ -85,25 +85,7 @@ bool SelectionHelper::ExtendTo(point const& p)
 {
 	auto mouseCellPos = p;
 
-	auto consoleBufferWindow = _consoleHelper.BufferView();
-	auto consoleBufferWindowPrev = consoleBufferWindow;
 	auto consoleBufferSize = _consoleHelper.BufferSize();
-
-	if ((mouseCellPos.y() < consoleBufferWindow.top()) && (consoleBufferWindow.top() > 0))
-	{
-		mouseCellPos.y() = consoleBufferWindow.top();
-		--consoleBufferWindow.top();
-	}
-
-	if ((mouseCellPos.y() >= consoleBufferWindow.bottom()) && (consoleBufferWindow.bottom() < consoleBufferSize.height()))
-	{
-		mouseCellPos.y() = consoleBufferWindow.bottom() - 1;
-		++consoleBufferWindow.top();
-	}
-
-	// update the console's buffer position
-	if (consoleBufferWindow != consoleBufferWindowPrev)
-		_consoleHelper.BufferView(consoleBufferWindow);
 
 	if (mouseCellPos.x() < 0)
 		mouseCellPos.x() = 0;

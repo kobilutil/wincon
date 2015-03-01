@@ -488,11 +488,54 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 		auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
 		auto mouseCellPos = _consoleHelper.MapPixelToCell(mousePixelPos);
 
-		if (!_selectionHelper.ExtendTo(mouseCellPos)) 
-			// ExtendTo returns false if there was no change
+		auto bufferView = _consoleHelper.BufferView();
+
+		// adjust mouse pos so it will always fall inside the visible part of the console's buffer.
+		if (mouseCellPos.y() < bufferView.top())
+			mouseCellPos.y() = bufferView.top();
+		else if (mouseCellPos.y() >= bufferView.bottom())
+			mouseCellPos.y() = bufferView.bottom() - 1;
+
+		if (_selectionHelper.ExtendTo(mouseCellPos))	// ExtendTo returns false if there was no change
+			_selectionView.Refresh();
+
+		// only auto-scroll if the cursor is outside the window and the user is moving the mouse.
+		// NOTE: imho this feels like the user have more control over the scrolling speed compared
+		// with the conventional technique to auto scroll on a timer where the speed is based on 
+		// the distance of the cursor from the borders.
+		// TODO: maybe to also use a timer to slowly auto scroll and accelerate if the user is moving
+		// the mouse, like notepad++ for example.
+		if (mousePixelPos == _selectionLastMousePixelPos)
 			return;
 
-		_selectionView.Refresh();
+		_selectionLastMousePixelPos = mousePixelPos;
+
+		auto rect = GetClientRect(_hWndConsole);
+		if (!rect.contains(mousePixelPos))
+		{
+			auto scrollDeltaY = 0;
+
+			// if the mouse if above the console window, then scroll up if possible
+			if (mousePixelPos.y() < rect.top())
+			{
+				if (bufferView.top() > 0)
+					scrollDeltaY = -1;
+			}
+			// if the mouse is below the console window, then scroll down if possible
+			else if (mousePixelPos.y() >= rect.bottom())
+			{
+				auto bufferSize = _consoleHelper.BufferSize();
+				if (bufferView.bottom() < bufferSize.height())
+					scrollDeltaY = +1;
+			}
+
+			// actually scroll the console's buffer view if so requested
+			if (scrollDeltaY)
+			{
+				bufferView.top() += scrollDeltaY;
+				_consoleHelper.BufferView(bufferView);
+			}
+		}
 	}
 }
 

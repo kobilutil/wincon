@@ -64,6 +64,7 @@ private:
 
 	SelectionViewWindow _selectionView;
 	SelectionHelper		_selectionHelper;
+	point				_selectionLastMousePixelPos;
 
 	class ResizeHelper
 	{
