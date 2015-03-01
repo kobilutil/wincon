@@ -41,13 +41,20 @@ private:
 
 	void OnWM_NCLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest);
 
+	void OnWM_Timer(HWND hwnd, UINT id);
+
 	bool	IsConsoleWantsMouseEvents() const;
 	void	ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	int		DetectMultpleClicks(int x, int y);
 	//point	MapConsolePoint(point const& p);
 
+	void	ScrollConsole(int dy);
+
 private:
+	static const auto AUTO_SCROLL_TIMER_ID = 1;
+	static const auto AUTO_SCROLL_TIMER_TIMEOUT = 100;
+
 	DWORD	_consoleWindowThreadId;
 
 	HWND	_hWndOverlay;
@@ -65,6 +72,8 @@ private:
 	SelectionViewWindow _selectionView;
 	SelectionHelper		_selectionHelper;
 	point				_selectionLastMousePixelPos;
+	bool				_selectionAutoScrollTimer = false;
+	int					_selectionAutoScrollTimerDeltaY = 0;
 
 	class ResizeHelper
 	{

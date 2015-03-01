@@ -391,6 +391,8 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 	HANDLE_MSG(hwnd, WM_NCLBUTTONDOWN, OnWM_NCLButtonDown);
 
+	HANDLE_MSG(hwnd, WM_TIMER, OnWM_Timer);
+
 	case WM_MOUSEMOVE:
 		if (IsConsoleWantsMouseEvents())
 			ForwardConsoleMouseEvent(hwnd, msg, wParam, lParam);
@@ -467,6 +469,14 @@ void ConsoleOverlayWindow::OnWM_NCLButtonDown(HWND hWnd, BOOL fDoubleClick, int 
 	}
 }
 
+void ConsoleOverlayWindow::OnWM_Timer(HWND hwnd, UINT id)
+{
+	if (id == AUTO_SCROLL_TIMER_ID)
+	{
+		ScrollConsole(_selectionAutoScrollTimerDeltaY);
+	}
+}
+
 void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags)
 {
 	if (_resizeHelper.IsResizing())
@@ -485,12 +495,13 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 	{
 		_consoleHelper.RefreshInfo();
 
-		auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
+		//auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
+		auto mousePixelPos = MapWindowPoints(HWND_DESKTOP, _hWndConsole, GetCursorPos());
 		auto mouseCellPos = _consoleHelper.MapPixelToCell(mousePixelPos);
 
 		auto bufferView = _consoleHelper.BufferView();
 
-		// adjust mouse pos so it will always fall inside the visible part of the console's buffer.
+		// adjust selection position so it will always fall inside the visible part of the console's buffer.
 		if (mouseCellPos.y() < bufferView.top())
 			mouseCellPos.y() = bufferView.top();
 		else if (mouseCellPos.y() >= bufferView.bottom())
@@ -499,42 +510,49 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 		if (_selectionHelper.ExtendTo(mouseCellPos))	// ExtendTo returns false if there was no change
 			_selectionView.Refresh();
 
-		// only auto-scroll if the cursor is outside the window and the user is moving the mouse.
-		// NOTE: imho this feels like the user have more control over the scrolling speed compared
-		// with the conventional technique to auto scroll on a timer where the speed is based on 
-		// the distance of the cursor from the borders.
-		// TODO: maybe to also use a timer to slowly auto scroll and accelerate if the user is moving
-		// the mouse, like notepad++ for example.
+		// revaluate the autoscrolling only if the user actually moves the mouse. note that if the auto
+		// scroll timer is currently active the console will continue to slowly scroll, but if the user
+		// start moving the mouse as well then the scrolling will be much much faster. this is somewhat
+		// similar to how notepad++ behaves.
 		if (mousePixelPos == _selectionLastMousePixelPos)
 			return;
 
 		_selectionLastMousePixelPos = mousePixelPos;
 
+		auto scrollDeltaY = 0;
 		auto rect = GetClientRect(_hWndConsole);
-		if (!rect.contains(mousePixelPos))
+
+		// if the mouse is above the console window, then scroll up if possible
+		if (mousePixelPos.y() < rect.top())
+			scrollDeltaY = -1;
+		// if the mouse is below the console window, then scroll down if possible
+		else if (mousePixelPos.y() >= rect.bottom())
+			scrollDeltaY = +1;
+
+		// if need to scroll..
+		if (scrollDeltaY)
 		{
-			auto scrollDeltaY = 0;
+			// actually do the scrolling
+			ScrollConsole(scrollDeltaY);
 
-			// if the mouse if above the console window, then scroll up if possible
-			if (mousePixelPos.y() < rect.top())
+			// setup the auto scroll timer if needed
+			if (!_selectionAutoScrollTimer)
 			{
-				if (bufferView.top() > 0)
-					scrollDeltaY = -1;
+				::SetTimer(_hWndOverlay, AUTO_SCROLL_TIMER_ID, AUTO_SCROLL_TIMER_TIMEOUT, NULL);
+				_selectionAutoScrollTimer = true;
 			}
-			// if the mouse is below the console window, then scroll down if possible
-			else if (mousePixelPos.y() >= rect.bottom())
+			_selectionAutoScrollTimerDeltaY = scrollDeltaY;
+		}
+		// if no need to scroll..
+		else
+		{
+			// stop the auto scroll timer if it is active
+			if (_selectionAutoScrollTimer)
 			{
-				auto bufferSize = _consoleHelper.BufferSize();
-				if (bufferView.bottom() < bufferSize.height())
-					scrollDeltaY = +1;
+				::KillTimer(_hWndOverlay, AUTO_SCROLL_TIMER_ID);
+				_selectionAutoScrollTimer = false;
 			}
-
-			// actually scroll the console's buffer view if so requested
-			if (scrollDeltaY)
-			{
-				bufferView.top() += scrollDeltaY;
-				_consoleHelper.BufferView(bufferView);
-			}
+			_selectionAutoScrollTimerDeltaY = 0;
 		}
 	}
 }
@@ -592,6 +610,12 @@ void ConsoleOverlayWindow::OnWM_MouseButtonUp(HWND hWnd, int x, int y, UINT keyF
 		debug_print("finish selecting\n");
 
 		_selectionHelper.Finish();
+
+		if (_selectionAutoScrollTimer)
+		{
+			::KillTimer(_hWndOverlay, 1);
+			_selectionAutoScrollTimer = false;
+		}
 
 		::ReleaseCapture();
 
@@ -652,4 +676,19 @@ int ConsoleOverlayWindow::DetectMultpleClicks(int x, int y)
 	_clicks = _clicks % 4;
 
 	return _clicks;
+}
+
+void ConsoleOverlayWindow::ScrollConsole(int dy)
+{
+	auto bufferView = _consoleHelper.BufferView();
+	bufferView.top() += dy;
+
+	if (bufferView.top() < 0)
+		bufferView.top() = 0;
+
+	auto bufferSize = _consoleHelper.BufferSize();
+	if (bufferView.bottom() >= bufferSize.height())
+		bufferView.top() = bufferSize.height() - bufferView.height();
+
+	_consoleHelper.BufferView(bufferView);
 }
