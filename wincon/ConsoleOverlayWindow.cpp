@@ -83,6 +83,12 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 
 	AdjustOverlayZOrder();
 
+	_resizeOperation.OnSizeChanged([this](){
+		auto size = _resizeOperation.GetRectangle().size();
+		ResizeConsole(size);
+		AdjustOverlayPosition();
+	});
+
 	return true;
 }
 
@@ -207,7 +213,7 @@ void ConsoleOverlayWindow::ReOpenConsoleHandles()
 
 void ConsoleOverlayWindow::AdjustOverlayPosition()
 {
-	if (_resizeHelper.IsResizing())
+	if (_resizeOperation.IsActive())
 		return;
 
 	// the overlay window should have the exact same size as the console window
@@ -383,6 +389,9 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 
 LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (_resizeOperation.HandleMessage(hwnd, msg, wParam, lParam))
+		return 0;
+
 	switch (msg)
 	{
 	HANDLE_MSG(hwnd, WM_NCHITTEST, OnWM_NCHitTest);
@@ -461,9 +470,7 @@ void ConsoleOverlayWindow::OnWM_NCLButtonDown(HWND hWnd, BOOL fDoubleClick, int 
 	case HTBOTTOM:
 	case HTRIGHT:
 	case HTBOTTOMRIGHT:
-		debug_print("start resizing\n");
-		_resizeHelper.Start(hitTest, point(x, y), GetWindowRect(_hWndOverlay));
-		::SetCapture(_hWndOverlay);
+		_resizeOperation.Start(_hWndOverlay, point(x, y), hitTest);
 		break;
 	}
 }
@@ -478,18 +485,6 @@ void ConsoleOverlayWindow::OnWM_Timer(HWND hwnd, UINT id)
 
 void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags)
 {
-	if (_resizeHelper.IsResizing())
-	{
-		//auto p = MapWindowPoints(_hWndOverlay, HWND_DESKTOP, point(x, y));
-		//_resizeHelper.ResizeTo(p);
-		_resizeHelper.ResizeTo(GetCursorPos());
-
-		auto size = _resizeHelper.GetRectangle().size();
-		ResizeConsole(size);
-		
-		return;
-	}
-
 	if (_selectionHelper.IsSelecting())
 	{
 		_consoleHelper.RefreshInfo();
@@ -590,18 +585,6 @@ void ConsoleOverlayWindow::OnWM_MouseButtonDown(HWND hWnd, int x, int y, UINT ke
 
 void ConsoleOverlayWindow::OnWM_MouseButtonUp(HWND hWnd, int x, int y, UINT keyFlags)
 {
-	if (_resizeHelper.IsResizing())
-	{
-		debug_print("finish resizing\n");
-
-		_resizeHelper.Finish();
-
-		::ReleaseCapture();
-
-		AdjustOverlayPosition();
-		return;
-	}
-
 	if (_selectionHelper.IsSelecting())
 	{
 		debug_print("finish selecting\n");
@@ -624,7 +607,7 @@ void ConsoleOverlayWindow::OnWM_MouseButtonUp(HWND hWnd, int x, int y, UINT keyF
 
 bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
 {
-	if (_resizeHelper.IsResizing() || _selectionHelper.IsSelecting())
+	if (_resizeOperation.IsActive() || _selectionHelper.IsSelecting())
 		return false;
 		
 	auto mode = _consoleHelper.InputMode();
