@@ -43,9 +43,14 @@ public:
 
 	bool CopyToClipboard(HWND hWndOwner);
 
+	template <typename T>
+	void OnSelectionChanged(T func) { _selectionChangedEvent.push_back(func); }
+
 private:
 	bool ReadOutputLineToCache(int y);
 	void AdjustSelectionAccordingToMode(enum Mode mode, point& p1, point& p2);
+
+	void FireSelectionChangedEvent();
 
 private:
 	bool			_isSelecting;
@@ -55,6 +60,8 @@ private:
 
 	point			_anchorCell;
 	point			_p1, _p2;
+
+	std::vector< std::function<void(void)> > _selectionChangedEvent;
 
 	std::vector<CHAR_INFO>	_cachedLine;
 

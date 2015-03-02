@@ -76,9 +76,10 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 
 	AdjustSelectionAccordingToMode(_mode, _p1, _p2);
 
-	_isShowing = (_p1 != _p2);
-
 	debug_print("SelectionHelper::Start - mode=%d, anchor=%d,%d\n", _mode, _anchorCell.x(), _anchorCell.y());
+
+	_isShowing = (_p1 != _p2);
+	FireSelectionChangedEvent();
 }
 
 bool SelectionHelper::ExtendTo(point const& p)
@@ -117,11 +118,12 @@ bool SelectionHelper::ExtendTo(point const& p)
 	if ((p1 == _p1) && (p2 == _p2))
 		return false;
 
+	debug_print("SelectionHelper::ExtendTo - mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
+
 	_p1 = p1;
 	_p2 = p2;
 	_isShowing = (_p1 != _p2);
-
-	debug_print("SelectionHelper::ExtendTo - mode=%d, %d,%d - %d,%d\n", _mode, _p1.x(), _p1.y(), _p2.x(), _p2.y());
+	FireSelectionChangedEvent();
 
 	return true;
 }
@@ -163,6 +165,7 @@ void SelectionHelper::Clear()
 	Finish();
 	_isShowing = false;
 	_anchorCell = _p1 = _p2 = point();
+	FireSelectionChangedEvent();
 }
 
 bool SelectionHelper::CopyToClipboard(HWND hWndOwner)
@@ -233,4 +236,12 @@ bool SelectionHelper::ReadOutputLineToCache(int y)
 {
 	auto region = rectangle(0, y, _consoleHelper.BufferSize().width(), 1);
 	return _consoleHelper.ReadOutput(_cachedLine, region);
+}
+
+void SelectionHelper::FireSelectionChangedEvent()
+{
+	for (auto& func : _selectionChangedEvent)
+	{
+		func();
+	}
 }

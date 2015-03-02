@@ -52,6 +52,9 @@ bool SelectionViewWindow::Create(HWND hWndConsole, HWND hWndOverlay)
 	_hWnd = hWnd;
 	debug_print("SelectionViewWindow::Create - selection view window created, hwnd=%#x\n", _hWnd);
 
+	// register for selection-changed event
+	_selectionHelper.OnSelectionChanged([this](){ Refresh(); });
+
 	return true;
 }
 

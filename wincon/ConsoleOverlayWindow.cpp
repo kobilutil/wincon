@@ -97,7 +97,6 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			if (_selectionHelper.IsShowing())
 			{
 				_selectionHelper.Clear();
-				_selectionView.Refresh();
 			}
 			break;
 		case EVENT_CONSOLE_UPDATE_SCROLL:
@@ -507,8 +506,8 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 		else if (mouseCellPos.y() >= bufferView.bottom())
 			mouseCellPos.y() = bufferView.bottom() - 1;
 
-		if (_selectionHelper.ExtendTo(mouseCellPos))	// ExtendTo returns false if there was no change
-			_selectionView.Refresh();
+		// actually extend the selection
+		_selectionHelper.ExtendTo(mouseCellPos);
 
 		// revaluate the autoscrolling only if the user actually moves the mouse. note that if the auto
 		// scroll timer is currently active the console will continue to slowly scroll, but if the user
@@ -577,7 +576,6 @@ void ConsoleOverlayWindow::OnWM_MouseButtonDown(HWND hWnd, int x, int y, UINT ke
 	default:
 		::ReleaseCapture();
 		_selectionHelper.Clear();
-		_selectionView.Refresh();
 		return;
 	}
 
@@ -586,7 +584,6 @@ void ConsoleOverlayWindow::OnWM_MouseButtonDown(HWND hWnd, int x, int y, UINT ke
 	_consoleHelper.RefreshInfo();
 
 	_selectionHelper.Start(_consoleHelper.MapPixelToCell(p), mode);
-	_selectionView.Refresh();
 
 	::SetCapture(_hWndOverlay);
 }
