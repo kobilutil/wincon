@@ -37,8 +37,8 @@ private:
 	BOOL OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeHitTest, UINT msg);
 
 	void OnWM_MouseMove(HWND hwnd, int x, int y, UINT keyFlags);
-	void OnWM_MouseButtonDown(HWND hwnd, int x, int y, UINT keyFlags);
-	void OnWM_MouseButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
+	void OnWM_MouseLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
+	void OnWM_MouseLButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
 
 	void OnWM_NCLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest);
 

@@ -392,6 +392,15 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	if (_resizeOperation.HandleMessage(hwnd, msg, wParam, lParam))
 		return 0;
 
+	if ((msg >= WM_MOUSEFIRST) && (msg <= WM_MOUSELAST))
+	{
+		if (IsConsoleWantsMouseEvents())
+		{
+			ForwardConsoleMouseEvent(hwnd, msg, wParam, lParam);
+			return 0;
+		}
+	}
+
 	switch (msg)
 	{
 	HANDLE_MSG(hwnd, WM_NCHITTEST, OnWM_NCHitTest);
@@ -401,30 +410,9 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 	HANDLE_MSG(hwnd, WM_TIMER, OnWM_Timer);
 
-	case WM_MOUSEMOVE:
-		if (IsConsoleWantsMouseEvents())
-			ForwardConsoleMouseEvent(hwnd, msg, wParam, lParam);
-		else
-			OnWM_MouseMove(hwnd, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
-		break;
-
-	case WM_LBUTTONDOWN:
-	case WM_RBUTTONDOWN:
-	case WM_MBUTTONDOWN:
-		if (IsConsoleWantsMouseEvents())
-			ForwardConsoleMouseEvent(hwnd, msg, wParam, lParam);
-		else
-			OnWM_MouseButtonDown(hwnd, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
-		break;
-
-	case WM_LBUTTONUP:
-	case WM_RBUTTONUP:
-	case WM_MBUTTONUP:
-		if (IsConsoleWantsMouseEvents())
-			ForwardConsoleMouseEvent(hwnd, msg, wParam, lParam);
-		else
-			OnWM_MouseButtonUp(hwnd, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
-		break;
+	HANDLE_MSG(hwnd, WM_MOUSEMOVE, OnWM_MouseMove);
+	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_MouseLButtonDown);
+	HANDLE_MSG(hwnd, WM_LBUTTONUP, OnWM_MouseLButtonUp);
 
 	case WM_MOUSEACTIVATE:
 		PostMessage(hwnd, WM_USER + 1, 0, 0);
@@ -551,7 +539,7 @@ void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags
 	}
 }
 
-void ConsoleOverlayWindow::OnWM_MouseButtonDown(HWND hWnd, int x, int y, UINT keyFlags)
+void ConsoleOverlayWindow::OnWM_MouseLButtonDown(HWND hWnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
 {
 	enum SelectionHelper::Mode mode{};
 
@@ -583,7 +571,7 @@ void ConsoleOverlayWindow::OnWM_MouseButtonDown(HWND hWnd, int x, int y, UINT ke
 	::SetCapture(_hWndOverlay);
 }
 
-void ConsoleOverlayWindow::OnWM_MouseButtonUp(HWND hWnd, int x, int y, UINT keyFlags)
+void ConsoleOverlayWindow::OnWM_MouseLButtonUp(HWND hWnd, int x, int y, UINT keyFlags)
 {
 	if (_selectionHelper.IsSelecting())
 	{
