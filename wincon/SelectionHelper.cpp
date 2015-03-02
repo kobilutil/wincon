@@ -11,7 +11,7 @@ enum CharCategory
 
 static int GetCharCategory(WCHAR c)
 {
-	return ::IsCharAlphaNumeric(c) ? CHAR_CAT_ALPHANUM : isspace(c) ? CHAR_CAT_SPACE : CHAR_CAT_OTHER;
+	return ::IsCharAlphaNumeric(c) ? CHAR_CAT_ALPHANUM : iswblank(c) ? CHAR_CAT_SPACE : CHAR_CAT_OTHER;
 }
 
 static int GetCharCategory(CHAR_INFO ci)
