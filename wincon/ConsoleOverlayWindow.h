@@ -5,6 +5,7 @@
 #include "SelectionViewWindow.h"
 #include "SelectionHelper.h"
 #include "ResizeOperation.h"
+#include "SelectionOperation.h"
 #include <vector>
 
 
@@ -36,13 +37,8 @@ private:
 	UINT OnWM_NCHitTest(HWND hwnd, int x, int y);
 	BOOL OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeHitTest, UINT msg);
 
-	void OnWM_MouseMove(HWND hwnd, int x, int y, UINT keyFlags);
-	void OnWM_MouseLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
-	void OnWM_MouseLButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
-
+	void OnWM_LButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
 	void OnWM_NCLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest);
-
-	void OnWM_Timer(HWND hwnd, UINT id);
 
 	bool	IsConsoleWantsMouseEvents() const;
 	void	ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -50,12 +46,7 @@ private:
 	int		DetectMultpleClicks(int x, int y);
 	//point	MapConsolePoint(point const& p);
 
-	void	ScrollConsole(int dy);
-
 private:
-	static const auto AUTO_SCROLL_TIMER_ID = 1;
-	static const auto AUTO_SCROLL_TIMER_TIMEOUT = 100;
-
 	DWORD	_consoleWindowThreadId;
 
 	HWND	_hWndOverlay;
@@ -72,9 +63,7 @@ private:
 
 	SelectionViewWindow _selectionView;
 	SelectionHelper		_selectionHelper;
-	point				_selectionLastMousePixelPos;
-	bool				_selectionAutoScrollTimer = false;
-	int					_selectionAutoScrollTimerDeltaY = 0;
 
 	ResizeOperation		_resizeOperation;
+	SelectionOperation	_selectionOperation;
 };

@@ -60,6 +60,9 @@
     <ClInclude Include="ResizeOperation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SelectionOperation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ResizeOperation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SelectionOperation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

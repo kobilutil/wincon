@@ -8,9 +8,9 @@
 
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
 	_selectionHelper(_consoleHelper),
-	_selectionView(_consoleHelper, _selectionHelper)
-{
-}
+	_selectionView(_consoleHelper, _selectionHelper),
+	_selectionOperation(_consoleHelper, _selectionHelper)
+{}
 
 ConsoleOverlayWindow::~ConsoleOverlayWindow()
 {
@@ -395,6 +395,9 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	if (_resizeOperation.HandleMessage(hwnd, msg, wParam, lParam))
 		return 0;
 
+	if (_selectionOperation.HandleMessage(hwnd, msg, wParam, lParam))
+		return 0;
+
 	if ((msg >= WM_MOUSEFIRST) && (msg <= WM_MOUSELAST))
 	{
 		if (IsConsoleWantsMouseEvents())
@@ -410,12 +413,7 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	HANDLE_MSG(hwnd, WM_SETCURSOR, OnWM_SetCursor);
 
 	HANDLE_MSG(hwnd, WM_NCLBUTTONDOWN, OnWM_NCLButtonDown);
-
-	HANDLE_MSG(hwnd, WM_TIMER, OnWM_Timer);
-
-	HANDLE_MSG(hwnd, WM_MOUSEMOVE, OnWM_MouseMove);
-	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_MouseLButtonDown);
-	HANDLE_MSG(hwnd, WM_LBUTTONUP, OnWM_MouseLButtonUp);
+	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_LButtonDown);
 
 	case WM_DROPFILES:
 		::PostMessage(_hWndConsole, msg, wParam, lParam);
@@ -470,83 +468,7 @@ void ConsoleOverlayWindow::OnWM_NCLButtonDown(HWND hWnd, BOOL fDoubleClick, int 
 	}
 }
 
-void ConsoleOverlayWindow::OnWM_Timer(HWND hwnd, UINT id)
-{
-	if (id == AUTO_SCROLL_TIMER_ID)
-	{
-		ScrollConsole(_selectionAutoScrollTimerDeltaY);
-	}
-}
-
-void ConsoleOverlayWindow::OnWM_MouseMove(HWND hWnd, int x, int y, UINT keyFlags)
-{
-	if (_selectionHelper.IsSelecting())
-	{
-		_consoleHelper.RefreshInfo();
-
-		//auto mousePixelPos = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
-		auto mousePixelPos = MapWindowPoints(HWND_DESKTOP, _hWndConsole, GetCursorPos());
-		auto mouseCellPos = _consoleHelper.MapPixelToCell(mousePixelPos);
-
-		auto bufferView = _consoleHelper.BufferView();
-
-		// adjust selection position so it will always fall inside the visible part of the console's buffer.
-		if (mouseCellPos.y() < bufferView.top())
-			mouseCellPos.y() = bufferView.top();
-		else if (mouseCellPos.y() >= bufferView.bottom())
-			mouseCellPos.y() = bufferView.bottom() - 1;
-
-		// actually extend the selection
-		_selectionHelper.ExtendTo(mouseCellPos);
-
-		// revaluate the autoscrolling only if the user actually moves the mouse. note that if the auto
-		// scroll timer is currently active the console will continue to slowly scroll, but if the user
-		// start moving the mouse as well then the scrolling will be much much faster. this is somewhat
-		// similar to how notepad++ behaves.
-		if (mousePixelPos == _selectionLastMousePixelPos)
-			return;
-
-		_selectionLastMousePixelPos = mousePixelPos;
-
-		auto scrollDeltaY = 0;
-		auto rect = GetClientRect(_hWndConsole);
-
-		// if the mouse is above the console window, then scroll up if possible
-		if (mousePixelPos.y() < rect.top())
-			scrollDeltaY = -1;
-		// if the mouse is below the console window, then scroll down if possible
-		else if (mousePixelPos.y() >= rect.bottom())
-			scrollDeltaY = +1;
-
-		// if need to scroll..
-		if (scrollDeltaY)
-		{
-			// actually do the scrolling
-			ScrollConsole(scrollDeltaY);
-
-			// setup the auto scroll timer if needed
-			if (!_selectionAutoScrollTimer)
-			{
-				::SetTimer(_hWndOverlay, AUTO_SCROLL_TIMER_ID, AUTO_SCROLL_TIMER_TIMEOUT, NULL);
-				_selectionAutoScrollTimer = true;
-			}
-			_selectionAutoScrollTimerDeltaY = scrollDeltaY;
-		}
-		// if no need to scroll..
-		else
-		{
-			// stop the auto scroll timer if it is active
-			if (_selectionAutoScrollTimer)
-			{
-				::KillTimer(_hWndOverlay, AUTO_SCROLL_TIMER_ID);
-				_selectionAutoScrollTimer = false;
-			}
-			_selectionAutoScrollTimerDeltaY = 0;
-		}
-	}
-}
-
-void ConsoleOverlayWindow::OnWM_MouseLButtonDown(HWND hWnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
+void ConsoleOverlayWindow::OnWM_LButtonDown(HWND hWnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
 {
 	enum SelectionHelper::Mode mode{};
 
@@ -564,40 +486,12 @@ void ConsoleOverlayWindow::OnWM_MouseLButtonDown(HWND hWnd, BOOL fDoubleClick, i
 		mode = SelectionHelper::SELECT_LINE;
 		break;
 	default:
-		::ReleaseCapture();
 		_selectionHelper.Clear();
+		_selectionOperation.Finish();
 		return;
 	}
 
-	debug_print("start selecting - mode=%d\n", mode);
-
-	_consoleHelper.RefreshInfo();
-
-	_selectionHelper.Start(_consoleHelper.MapPixelToCell(p), mode);
-
-	::SetCapture(_hWndOverlay);
-}
-
-void ConsoleOverlayWindow::OnWM_MouseLButtonUp(HWND hWnd, int x, int y, UINT keyFlags)
-{
-	if (_selectionHelper.IsSelecting())
-	{
-		debug_print("finish selecting\n");
-
-		_selectionHelper.Finish();
-
-		if (_selectionAutoScrollTimer)
-		{
-			::KillTimer(_hWndOverlay, 1);
-			_selectionAutoScrollTimer = false;
-		}
-
-		::ReleaseCapture();
-
-		_selectionHelper.CopyToClipboard(_hWndOverlay);
-	}
-
-	auto p = MapWindowPoints(hWnd, _hWndConsole, point(x, y));
+	_selectionOperation.Start(_hWndOverlay, p, mode);
 }
 
 bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
@@ -681,19 +575,4 @@ int ConsoleOverlayWindow::DetectMultpleClicks(int x, int y)
 	_clicks = _clicks % 4;
 
 	return _clicks;
-}
-
-void ConsoleOverlayWindow::ScrollConsole(int dy)
-{
-	auto bufferView = _consoleHelper.BufferView();
-	bufferView.top() += dy;
-
-	if (bufferView.top() < 0)
-		bufferView.top() = 0;
-
-	auto bufferSize = _consoleHelper.BufferSize();
-	if (bufferView.bottom() >= bufferSize.height())
-		bufferView.top() = bufferSize.height() - bufferView.height();
-
-	_consoleHelper.BufferView(bufferView);
 }
