@@ -69,7 +69,6 @@ void SelectionHelper::Start(point const& anchor, enum Mode mode)
 {
 	Clear();
 
-	_isSelecting = true;
 	_anchorCell = anchor;
 	_p1 = _p2 = _anchorCell;
 	_mode = mode;
@@ -155,14 +154,8 @@ void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, 
 	}
 }
 
-void SelectionHelper::Finish()
-{
-	_isSelecting = false;
-}
-
 void SelectionHelper::Clear()
 {
-	Finish();
 	_isShowing = false;
 	_anchorCell = _p1 = _p2 = point();
 	FireSelectionChangedEvent();

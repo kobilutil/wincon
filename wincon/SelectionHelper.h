@@ -20,13 +20,9 @@ public:
 
 	void Start(point const& anchor, enum Mode mode);
 	bool ExtendTo(point const& p);
-
-	void Finish();
 	void Clear();
 
-	bool IsSelecting() const	{ return _isSelecting; }
 	bool IsShowing() const		{ return _isShowing; }
-
 	enum Mode Mode() const		{ return _mode; }
 
 	// (p1,p2) represent the selection area
@@ -53,7 +49,6 @@ private:
 	void FireSelectionChangedEvent();
 
 private:
-	bool			_isSelecting;
 	bool			_isShowing;
 
 	enum Mode		_mode;

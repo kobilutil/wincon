@@ -496,7 +496,7 @@ void ConsoleOverlayWindow::OnWM_LButtonDown(HWND hWnd, BOOL fDoubleClick, int x,
 
 bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
 {
-	if (_resizeOperation.IsActive() || _selectionHelper.IsSelecting())
+	if (_resizeOperation.IsActive() || _selectionOperation.IsActive())
 		return false;
 	
 	// if ENABLE_MOUSE_INPUT is set, the default behavior is to forward all mouse events 

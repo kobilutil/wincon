@@ -31,7 +31,6 @@ void SelectionOperation::Finish()
 
 	debug_print("SelectionOperation::Finish\n");
 
-	_selectionHelper.Finish();
 	_selectionHelper.CopyToClipboard(_hWnd);
 
 	DisableAutoScrollTimer();
