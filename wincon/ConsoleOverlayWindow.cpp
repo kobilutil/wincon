@@ -2,6 +2,7 @@
 #include "ConsoleOverlayWindow.h"
 
 #include <algorithm>
+#include <Shellapi.h>
 #include <windowsx.h>
 
 
@@ -88,6 +89,8 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 		ResizeConsole(size);
 		AdjustOverlayPosition();
 	});
+
+	::DragAcceptFiles(_hWndOverlay, TRUE);
 
 	return true;
 }
@@ -413,6 +416,10 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	HANDLE_MSG(hwnd, WM_MOUSEMOVE, OnWM_MouseMove);
 	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_MouseLButtonDown);
 	HANDLE_MSG(hwnd, WM_LBUTTONUP, OnWM_MouseLButtonUp);
+
+	case WM_DROPFILES:
+		::PostMessage(_hWndConsole, msg, wParam, lParam);
+		break;
 
 	case WM_MOUSEACTIVATE:
 		PostMessage(hwnd, WM_USER + 1, 0, 0);
