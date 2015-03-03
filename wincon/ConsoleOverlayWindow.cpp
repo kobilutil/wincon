@@ -597,20 +597,23 @@ bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
 {
 	if (_resizeOperation.IsActive() || _selectionHelper.IsSelecting())
 		return false;
-		
+	
+	// if ENABLE_MOUSE_INPUT is set, the default behavior is to forward all mouse events 
+	// to the console, but by holding ctrl-alt the user can flip the default behavior.
+	// so for example, if ENABLE_MOUSE_INPUT is set (like with Far Manager), by default all 
+	// mouse events will be forwarded to the console so that Far Manager will work as expected.
+	// as a result though the enhanced selection wont be avaiable, but by holding the modifier 
+	// keys all mouse events will be handled so the selection will work.
+	// NOTE: cygwin apps running in windows console set the ENABLE_MOUSE_INPUT flag, so to use 
+	// the enhanced selection the user needs to hold the modifier keys. (or better yet, run 
+	// cygwin apps in mitty and get a better terminal experience all around).
+
 	auto mode = _consoleHelper.InputMode();
-	if ((mode & ENABLE_MOUSE_INPUT) == 0)
-		return false;
+	bool isMouseInput = ((mode & ENABLE_MOUSE_INPUT) != 0);
 
-	// by holding ctrl-alt the user can modified the default behavior
-	// and let the overlay window handle the mouse messages instead of
-	// forwarding them to the application running in the console.
-	// this allows the use of the enhanced copy-paste functionality even 
-	// in apps like 'far manager' or 'cygwin' console shell for example.
-	if ((::GetAsyncKeyState(VK_MENU) < 0) && (::GetAsyncKeyState(VK_CONTROL) < 0))
-		return false;
+	bool isOverrideKeyPressed = ((::GetAsyncKeyState(VK_MENU) < 0) && (::GetAsyncKeyState(VK_CONTROL) < 0));
 
-	return true;
+	return (isMouseInput && !isOverrideKeyPressed) || (!isMouseInput && isOverrideKeyPressed);
 }
 
 void ConsoleOverlayWindow::ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
