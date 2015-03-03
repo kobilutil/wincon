@@ -616,10 +616,37 @@ bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
 	return (isMouseInput && !isOverrideKeyPressed) || (!isMouseInput && isOverrideKeyPressed);
 }
 
-void ConsoleOverlayWindow::ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+void ConsoleOverlayWindow::ForwardConsoleMouseEvent(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	auto p = MapWindowPoints(hwnd, _hWndConsole, point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)));
-	::PostMessage(_hWndConsole, message, wParam, MAKELPARAM(p.x(), p.y()));
+
+	switch (msg)
+	{
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+		{
+			auto clicks = DetectMultpleClicks(p.x(), p.y());
+			if (clicks == 2)
+			{
+				switch (msg)
+				{
+				case WM_LBUTTONDOWN:
+					msg = WM_LBUTTONDBLCLK;
+					break;
+				case WM_RBUTTONDOWN:
+					msg = WM_RBUTTONDBLCLK;
+					break;
+				case WM_MBUTTONDOWN:
+					msg = WM_MBUTTONDBLCLK;
+					break;
+				}
+			}
+		}
+		break;
+	}
+
+	::PostMessage(_hWndConsole, msg, wParam, MAKELPARAM(p.x(), p.y()));
 }
 
 int ConsoleOverlayWindow::DetectMultpleClicks(int x, int y)
