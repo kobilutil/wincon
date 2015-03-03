@@ -64,6 +64,10 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 	}
 
+	SingleInstanceApp app(L"wincon-overlay-%lu-%s", ::GetConsoleWindow(), L"CE30069A-FA55-41B0-9DD1-DFF37132B6BB");
+	if (app.IsRunning())
+		return 1;
+
 	ConsoleHelper::InstallDefaultCtrlHandler();
 
 	auto consoleThreadId = ConsoleHelper::GetRealThreadId();
