@@ -1,5 +1,6 @@
 #pragma once
 #include "utils\utils.h"
+#include "utils\ConsoleHelper.h"
 #include <vector>
 #include <functional>
 
@@ -7,6 +8,8 @@ class ResizeOperation :
 	NonCopyable
 {
 public:
+	ResizeOperation(ConsoleHelper& consoleHelper);
+
 	void Start(HWND hWnd, point const& anchor, UINT direction);
 	void Finish();
 
@@ -21,6 +24,7 @@ public:
 private:
 	void FireSizeChangedEvent();
 	void ResizeTo(point const& p);
+	void SnapCursorToCell();
 
 private:
 	bool		_isActive = false;
@@ -31,4 +35,6 @@ private:
 	rectangle	_currentRect;
 
 	std::vector< std::function<void(void)> > _sizeChangedEvent;
+
+	ConsoleHelper& _consoleHelper;
 };

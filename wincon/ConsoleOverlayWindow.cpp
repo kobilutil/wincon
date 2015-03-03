@@ -9,7 +9,8 @@
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
 	_selectionHelper(_consoleHelper),
 	_selectionView(_consoleHelper, _selectionHelper),
-	_selectionOperation(_consoleHelper, _selectionHelper)
+	_selectionOperation(_consoleHelper, _selectionHelper),
+	_resizeOperation(_consoleHelper)
 {}
 
 ConsoleOverlayWindow::~ConsoleOverlayWindow()

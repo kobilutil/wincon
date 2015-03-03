@@ -225,4 +225,5 @@ rectangle	GetClientRect(HWND hWnd);
 rectangle	MapWindowPoints(HWND hWndFrom, HWND hWndTo, rectangle const& r);
 point		MapWindowPoints(HWND hWndFrom, HWND hWndTo, point const& p);
 point		GetCursorPos();
+bool		SetCursorPos(point const& p);
 int			CutoffRegion(scoped_gdi_region const& source, rectangle const& rect);

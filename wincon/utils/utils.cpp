@@ -212,6 +212,11 @@ point GetCursorPos()
 	return p2;
 }
 
+bool SetCursorPos(point const& p)
+{
+	return ::SetCursorPos(p.x(), p.y()) == TRUE;
+}
+
 int CutoffRegion(scoped_gdi_region const& source, rectangle const& rect)
 {
 	RECT rect2;

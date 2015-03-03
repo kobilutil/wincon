@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "ResizeOperation.h"
 
+ResizeOperation::ResizeOperation(ConsoleHelper& consoleHelper) :
+	_consoleHelper(consoleHelper)
+{}
+
 void ResizeOperation::Start(HWND hWnd, point const& anchor, UINT direction)
 {
 	if (IsActive())
@@ -29,6 +33,8 @@ void ResizeOperation::Finish()
 	_hWnd = NULL;
 	_isActive = false;
 	::ReleaseCapture();
+
+	SnapCursorToCell();
 
 	FireSizeChangedEvent();
 }
@@ -71,4 +77,14 @@ void ResizeOperation::ResizeTo(point const& p)
 		_currentRect.size().height() += (p.y() - _anchor.y());
 
 	FireSizeChangedEvent();
+}
+
+void ResizeOperation::SnapCursorToCell()
+{
+	auto delta = GetCursorPos() - _anchor;
+
+	auto cellSize = _consoleHelper.CellSize();
+	delta = (delta / cellSize) * cellSize;
+
+	SetCursorPos(_anchor + delta);
 }
