@@ -151,8 +151,7 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			if (!_resizeOperation.IsActive() && (!idObject && !idChild))
 			{
 				debug_print("EVENT_OBJECT_REORDER - %ld %ld\n", idObject, idChild);
-				_consoleHelper.ReOpenHandles();
-				_consoleHelper.RefreshInfo();
+				ReOpenConsoleHandles();
 				AdjustOverlayPosition();
 			}
 			break;
