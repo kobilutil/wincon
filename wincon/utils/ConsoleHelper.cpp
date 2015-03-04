@@ -4,8 +4,55 @@
 
 void ConsoleHelper::ReOpenHandles()
 {
-	_hConIn.reset(::CreateFile(_T("CONIN$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL));
-	_hConOut.reset(::CreateFile(_T("CONOUT$"), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL));
+	// TODO: need to add condition on OS version for windows7
+	if (_hConOut)
+	{
+		// HACK: on windows7 there is a bug in conhost.exe that is causing it to crash when 
+		// trying to close a hande to a console's screen buffer that was actually created by 
+		// another process with a call to CreateConsoleScreenBuffer and was opened here by 
+		// calling CreateFile("CONOUT$"..)
+		//
+		// it is similar to the (mis)behavior that is also described here:
+		// Console screen buffer bug in Windows 7 -
+		// https://fogbugz.bitvise.com/default.asp?WinSSHD.1.16969.1
+		//
+		// the workaround is to somewhat guess if we can safely close the handle or just let 
+		// it leak.
+		//
+		// running several tests have shown that those "bad" screen buffers also return incorrect
+		// or rather invalid information when calling GetConsoleScreenBufferInfo/GetConsoleFontSize/
+		// or GetLargestConsoleWindowSize on them. so based on some senity checks below we deside 
+		// if it is safer to just detach from the handle and let it leak or not.
+
+		// NOTE: regarding maxSize, for "bad" handles the maxSize returned seems to be the pixel size
+		// of the desktop's working area instead of the max number of cells.
+		// TODO: maybe to somehow add this to the sanity checks below.
+		size maxSize;
+		maxSize << ::GetLargestConsoleWindowSize(_hConOut.get());
+
+		RefreshInfo();
+		debug_print("XX: %#x max=%d,%d size=%d,%d font=%d,%d view=%d,%d,%dx%d cursor=%d,%d\n",
+			_hConOut.get(), 
+			maxSize.width(), maxSize.height(),
+			_bufferSize.width(), _bufferSize.height(),
+			_cellSize.width(), _cellSize.height(),
+			_bufferView.left(), _bufferView.top(),
+			_bufferView.width(), _bufferView.height(),
+			_caretPos.x(), _caretPos.y());
+
+		if (_cellSize.width() == 0 || _cellSize.height() == 0			// zero font size
+			|| _bufferSize.width() <= 0 || _bufferSize.height() <= 0	// negative buffer size
+			|| _bufferView.width() > maxSize.width()			// buffer view is bigger than
+			|| _bufferView.height() > maxSize.height()			// the maximum allowed
+			|| !rectangle(point(), _bufferSize).contains(_caretPos))	// caret is outside the buffer 
+		{
+			debug_print("ConsoleHelper::ReOpenHandles - conhost crash workaround, leak handle %#x\n", _hConOut.get());
+			_hConOut.detach();
+		}
+	}
+
+	_hConIn.reset(::CreateFile(L"CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL));
+	_hConOut.reset(::CreateFile(L"CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL));
 }
 
 bool ConsoleHelper::RefreshInfo()
@@ -14,6 +61,8 @@ bool ConsoleHelper::RefreshInfo()
 	if (!::GetConsoleScreenBufferInfo(_hConOut.get(), &csbi))
 		return false;
 
+	//auto maxSize = ::GetLargestConsoleWindowSize(_hConOut.get());
+
 	::CONSOLE_FONT_INFO fontInfo{};
 	if (!::GetCurrentConsoleFont(_hConOut.get(), FALSE, &fontInfo))
 		return false;
@@ -21,6 +70,7 @@ bool ConsoleHelper::RefreshInfo()
 	_bufferSize << csbi.dwSize;
 	_bufferView << csbi.srWindow;
 
+	//_cellSize << fontInfo.dwFontSize;
 	_cellSize << GetConsoleFontSize(_hConOut.get(), fontInfo.nFont);
 
 	_caretPos << csbi.dwCursorPosition;
