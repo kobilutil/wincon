@@ -91,6 +91,7 @@
     <ClInclude Include="utils\rectangle_helpers.h" />
     <ClInclude Include="utils\scoped_helpers.h" />
     <ClInclude Include="utils\scoped_resource.h" />
+    <ClInclude Include="utils\TrackingTooltip.h" />
     <ClInclude Include="utils\utils.h" />
     <ClInclude Include="wincon.h" />
   </ItemGroup>
@@ -105,6 +106,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="utils\ConsoleHelper.cpp" />
+    <ClCompile Include="utils\TrackingTooltip.cpp" />
     <ClCompile Include="utils\utils.cpp" />
     <ClCompile Include="wincon.cpp" />
   </ItemGroup>

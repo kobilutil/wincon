@@ -2,6 +2,7 @@
 
 #include "utils\utils.h"
 #include "utils\ConsoleHelper.h"
+#include "utils\TrackingTooltip.h"
 #include "SelectionViewWindow.h"
 #include "SelectionHelper.h"
 #include "ResizeOperation.h"
@@ -27,8 +28,7 @@ private:
 
 	void ReOpenConsoleHandles();
 
-	//void AdjustOverlayPosition();
-	void ResizeConsole(size& requestedWindowSize);
+	bool ResizeConsole(size const& requestedWindowSize);
 
 	void SetupWinEventHooks();
 
@@ -45,6 +45,8 @@ private:
 
 	int		DetectMultpleClicks(int x, int y);
 	//point	MapConsolePoint(point const& p);
+
+	void UpdateSizeTooltipText();
 
 private:
 	DWORD	_consoleWindowThreadId;
@@ -66,4 +68,6 @@ private:
 
 	ResizeOperation		_resizeOperation;
 	SelectionOperation	_selectionOperation;
+
+	TrackingTooltip		_sizeTooltip;
 };

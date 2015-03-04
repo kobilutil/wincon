@@ -85,10 +85,21 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 
 	AdjustOverlayZOrder();
 
-	_resizeOperation.OnSizeChanged([this](){
+	if (!_sizeTooltip.Create(_hWndOverlay))
+		debug_print("ConsoleOverlayWindow::Create - _sizeTooltip.Create failed, err=%#x\n", ::GetLastError());
+
+	_resizeOperation.OnSizeChanged([this]() {
 		auto size = _resizeOperation.GetRectangle().size();
-		ResizeConsole(size);
+		auto changed = ResizeConsole(size);
 		AdjustOverlayPosition();
+
+		if (_resizeOperation.IsActive())
+		{
+			if (changed)
+				UpdateSizeTooltipText();
+		}
+		else
+			_sizeTooltip.Show(false);
 	});
 
 	::DragAcceptFiles(_hWndOverlay, TRUE);
@@ -313,16 +324,16 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 	}
 }
 
-void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
+bool ConsoleOverlayWindow::ResizeConsole(size const& requestedWindowSize)
 {
 	if (!_consoleHelper.RefreshInfo())
-		return;
+		return false;
 
 	auto currentConsoleSize = GetWindowRect(_hWndConsole).size();
 
 	auto addedCells = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
 	if (!addedCells)
-		return;
+		return false;
 
 	auto currBufferView = _consoleHelper.BufferView();
 	auto currBufferSize = _consoleHelper.BufferSize();
@@ -388,7 +399,11 @@ void ConsoleOverlayWindow::ResizeConsole(size& requestedWindowSize)
 		::RedrawWindow(_hWndConsole, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 
 		_selectionView.AdjustPosition();
+
+		return true;
 	}
+
+	return false;
 }
 
 LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -465,6 +480,10 @@ void ConsoleOverlayWindow::OnWM_NCLButtonDown(HWND hWnd, BOOL fDoubleClick, int 
 	case HTRIGHT:
 	case HTBOTTOMRIGHT:
 		_resizeOperation.Start(_hWndOverlay, point(x, y), hitTest);
+
+		_sizeTooltip.SetPosition(MapWindowPoints(_hWndConsole, HWND_DESKTOP, point(10, 10)));
+		UpdateSizeTooltipText();
+		_sizeTooltip.Show(true);
 		break;
 	}
 }
@@ -576,4 +595,14 @@ int ConsoleOverlayWindow::DetectMultpleClicks(int x, int y)
 	_clicks = _clicks % 4;
 
 	return _clicks;
+}
+
+void ConsoleOverlayWindow::UpdateSizeTooltipText()
+{
+	auto size = _consoleHelper.BufferView().size();
+
+	WCHAR str[20];
+	wsprintf(str, L"%d, %d", size.width(), size.height());
+
+	_sizeTooltip.SetText(str);
 }
