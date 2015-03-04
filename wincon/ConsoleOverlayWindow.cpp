@@ -224,6 +224,7 @@ void ConsoleOverlayWindow::AdjustOverlayZOrder()
 void ConsoleOverlayWindow::ReOpenConsoleHandles()
 {
 	_consoleHelper.ReOpenHandles();
+	_consoleHelper.RefreshInfo();
 }
 
 void ConsoleOverlayWindow::AdjustOverlayPosition()
