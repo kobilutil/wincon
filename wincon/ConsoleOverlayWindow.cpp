@@ -145,6 +145,17 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			debug_print("SYSTEM_FOREGROUND - %ld %ld\n", idObject, idChild);
 			AdjustOverlayZOrder();
 			break;
+		case EVENT_OBJECT_REORDER:
+			// this seems to fire when someone is changing the active console's screen
+			// buffer with a call to SetConsoleActiveScreenBuffer.
+			if (!_resizeOperation.IsActive() && (!idObject && !idChild))
+			{
+				debug_print("EVENT_OBJECT_REORDER - %ld %ld\n", idObject, idChild);
+				_consoleHelper.ReOpenHandles();
+				_consoleHelper.RefreshInfo();
+				AdjustOverlayPosition();
+			}
+			break;
 		case EVENT_OBJECT_LOCATIONCHANGE:
 			// TODO: dirty static hack. FIXME. 
 			static auto isZoomed = ::IsZoomed(_hWndConsole);
@@ -171,7 +182,8 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 		::SetWinEventHook(EVENT_SYSTEM_MOVESIZESTART, EVENT_SYSTEM_MOVESIZEEND, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS),
 		::SetWinEventHook(EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS),
 		::SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS),
-		::SetWinEventHook(EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS)
+		::SetWinEventHook(EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS),
+		::SetWinEventHook(EVENT_OBJECT_REORDER, EVENT_OBJECT_REORDER, NULL, _winEventThunk.get(), 0, _consoleWindowThreadId, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS),
 	};
 
 	for (auto h : hHooks)
