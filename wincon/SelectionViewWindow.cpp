@@ -14,7 +14,7 @@ SelectionViewWindow::~SelectionViewWindow()
 
 bool SelectionViewWindow::Create(HWND hWndConsole, HWND hWndOverlay)
 {
-	::WNDCLASSEX wcex = { 0 };
+	::WNDCLASSEX wcex{};
 	wcex.cbSize = sizeof(wcex);
 	wcex.hInstance = ::GetModuleHandle(NULL);
 	wcex.lpszClassName = L"SelectionViewWindow-CCBE8432-6AC5-476C-8EE6-E4E21DB90138";

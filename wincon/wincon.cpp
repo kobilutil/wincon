@@ -10,6 +10,7 @@
 #pragma comment(linker, "\"/manifestdependency:type='Win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' " \
 "processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+
 static const auto OPTION_DEFAULT_CMDLINE = L"%COMSPEC%";
 
 
@@ -66,13 +67,15 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 	}
 
+	ConsoleHelper::InstallDefaultCtrlHandler();
+
 	SingleInstanceApp app(L"wincon-overlay-%lu-%s", ::GetConsoleWindow(), L"CE30069A-FA55-41B0-9DD1-DFF37132B6BB");
 	if (app.IsRunning())
 		return 1;
 
-	ConsoleHelper::InstallDefaultCtrlHandler();
-
 	auto consoleThreadId = ConsoleHelper::GetRealThreadId();
+	if (!consoleThreadId)
+		return 1;
 
 	::InitCommonControls();
 

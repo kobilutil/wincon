@@ -20,7 +20,7 @@ ConsoleOverlayWindow::~ConsoleOverlayWindow()
 
 bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 {
-	::WNDCLASSEX wcex = { 0 };
+	::WNDCLASSEX wcex{};
 	wcex.cbSize = sizeof(wcex);
 	wcex.hInstance = ::GetModuleHandle(NULL);
 	wcex.lpszClassName = L"ConsoleOverlayWindow-CCBE8432-6AC5-476C-8EE6-E4E21DB90138";
@@ -148,6 +148,8 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 		case EVENT_OBJECT_REORDER:
 			// this seems to fire when someone is changing the active console's screen
 			// buffer with a call to SetConsoleActiveScreenBuffer.
+			// unfortunately it also fires in many other occasions as well, like when
+			// console resized, minimized, restored...
 			if (!_resizeOperation.IsActive() && (!idObject && !idChild))
 			{
 				debug_print("EVENT_OBJECT_REORDER - %ld %ld\n", idObject, idChild);

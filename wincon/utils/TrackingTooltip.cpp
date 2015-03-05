@@ -44,7 +44,7 @@ void TrackingTooltip::SetText(LPWSTR str)
 	ti.hwnd = _hWndOwner;
 	ti.uId = (UINT)_hWndOwner;
 	ti.lpszText = str;
-	::SendMessageW(_hWndTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&ti);
+	::SendMessage(_hWndTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&ti);
 }
 
 void TrackingTooltip::SetPosition(point const& pt)
