@@ -338,86 +338,19 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 	}
 }
 
-bool ConsoleOverlayWindow::ResizeConsole(size const& requestedWindowSize)
+bool ConsoleOverlayWindow::ResizeConsole(size const& requestedPixelSize)
 {
 	if (!_consoleHelper.RefreshInfo())
 		return false;
 
-	auto currentConsoleSize = GetWindowRect(_hWndConsole).size();
+	auto currentPixelSize = GetWindowRect(_hWndConsole).size();
 
-	auto addedCells = (requestedWindowSize - currentConsoleSize) / _consoleHelper.CellSize();
+	auto addedCells = (requestedPixelSize - currentPixelSize) / _consoleHelper.CellSize();
 	if (!addedCells)
 		return false;
 
-	auto currBufferView = _consoleHelper.BufferView();
-	auto currBufferSize = _consoleHelper.BufferSize();
-	auto caretPosition = _consoleHelper.CaretPos();
-
-	auto newBufferView = currBufferView + addedCells;
-
-	if (newBufferView.width() < 20)
-		newBufferView.width() = 20;
-
-	if (newBufferView.height() < 10)
-		newBufferView.height() = 10;
-
-	// the new buffer will be atleast the size of the view
-	auto newBufferSize = newBufferView.size();
-
-	// if currently the console has a vertical scrollbar..
-	// TODO: and what about a horizontal bar?
-	bool isVScroll = (currBufferSize.height() != currBufferView.height());
-	if (isVScroll)
-	{
-		// match the new buffer scroll height to be the same as before.
-		newBufferSize.height() = currBufferSize.height();
-
-		// if the caret is currently visible, but due to user shrinking the height of the
-		// console for example the caret wont be seen in the new buffer's view, then in
-		// that case adjust the view so that the caret will be seen at the last row.
-		if (currBufferView.contains(caretPosition) && !newBufferView.contains(caretPosition))
-			newBufferView.top() = caretPosition.y() - newBufferView.height() + 1;
-
-		// align the buffer's view to the top of the buffer is needed.
-		if (newBufferView.top() < 0)
-			newBufferView.top() = 0;
-
-		// align the buffer's view to the bottom of the buffer is needed.
-		if (newBufferView.bottom() > newBufferSize.height())
-			newBufferView.top() = newBufferSize.height() - newBufferView.height();
-	}
-
-	// update the console with the new size but only if something actually changed
-	if ((currBufferSize != newBufferSize) || (currBufferView != newBufferView))
-	{
-		rectangle minRect{
-			newBufferView.left(),
-			newBufferView.top(),
-			std::min(currBufferView.width(), newBufferView.width()),
-			std::min(currBufferView.height(), newBufferView.height()),
-		};
-
-		::SendMessage(_hWndConsole, WM_SETREDRAW, FALSE, 0);
-
-		if (minRect != currBufferView)
-			if (!_consoleHelper.BufferView(minRect))
-				debug_print("SetConsoleWindowInfo failed, err=%#x\n", ::GetLastError());
-
-		if (!_consoleHelper.BufferSize(newBufferSize))
-			debug_print("SetConsoleScreencurrBufferSize failed, %dx%d err=%#x\n", newBufferSize.width(), newBufferSize.height(), ::GetLastError());
-
-		if (!_consoleHelper.BufferView(newBufferView))
-			debug_print("SetConsoleWindowInfo2 failed, err=%#x\n", ::GetLastError());
-
-		::SendMessage(_hWndConsole, WM_SETREDRAW, TRUE, 0);
-		::RedrawWindow(_hWndConsole, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
-
-		_selectionView.AdjustPosition();
-
-		return true;
-	}
-
-	return false;
+	auto newBufferView = _consoleHelper.BufferView() + addedCells;
+	return _consoleHelper.Resize(newBufferView);
 }
 
 LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

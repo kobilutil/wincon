@@ -22,6 +22,9 @@ public:
 	bool BufferSize(size const& v);
 	bool BufferView(rectangle const& v);
 
+	bool Resize(size const& v);
+	bool Resize(rectangle const& v);
+
 	DWORD InputMode() const;
 
 	point MapPixelToCell(point const& p);
