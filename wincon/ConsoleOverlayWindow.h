@@ -60,6 +60,12 @@ private:
 	RECT	_clickRect;
 	DWORD	_lastClickTime;
 
+	struct {
+		BOOL	isZoomed = FALSE;
+		size	normalSize;
+	}
+	_zoomState;
+
 	StaticThunk<WINEVENTPROC, ConsoleOverlayWindow>	_winEventThunk;
 	std::vector<scoped_wineventhook>				_winEventHooks;
 

@@ -18,6 +18,7 @@ public:
 	size const& BufferSize() const			{ return _bufferSize; }
 	rectangle const& BufferView() const		{ return _bufferView; }
 	point const& CaretPos() const			{ return _caretPos; }
+	size LargestViewSize() const;
 
 	bool BufferSize(size const& v);
 	bool BufferView(rectangle const& v);

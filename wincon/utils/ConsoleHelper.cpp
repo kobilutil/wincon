@@ -78,6 +78,13 @@ bool ConsoleHelper::RefreshInfo()
 	return true;
 }
 
+size ConsoleHelper::LargestViewSize() const
+{
+	size sz;
+	sz << ::GetLargestConsoleWindowSize(_hConOut.get());
+	return sz;
+}
+
 bool ConsoleHelper::BufferSize(size const& size)
 {
 	COORD temp;

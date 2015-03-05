@@ -158,14 +158,35 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			}
 			break;
 		case EVENT_OBJECT_LOCATIONCHANGE:
-			// TODO: dirty static hack. FIXME. 
-			static auto isZoomed = ::IsZoomed(_hWndConsole);
-
-			if (hWnd == _hWndConsole)
+			// this event fires on many occasions and especially alot during moving or resizing,
+			// however we only interested in identifying when the console is maximized and restored.
+			if ((hWnd == _hWndConsole) && (idObject == OBJID_WINDOW))
 			{
-				if (isZoomed != ::IsZoomed(hWnd))
+				//debug_print("LOCATIONCHANGE - %ld %ld\n", idObject, idChild);
+
+				// if the console has just been maximized
+				if (!_zoomState.isZoomed && ::IsZoomed(_hWndConsole))
 				{
-					isZoomed = ::IsZoomed(hWnd);
+					// save the previous size
+					_zoomState.normalSize = _consoleHelper.BufferView().size();
+
+					// resize to console's buffer view to maximum available
+					auto maxSize = _consoleHelper.LargestViewSize();
+					_consoleHelper.Resize(maxSize);
+				}
+				// if the console has just been restored
+				else if (_zoomState.isZoomed && !::IsZoomed(_hWndConsole))
+				{
+					// restore the previous size
+					if (_zoomState.normalSize)
+						_consoleHelper.Resize(_zoomState.normalSize);
+				}
+
+				// if console changed from normal to maximized or vice versa
+				// then make sure the overlay is positioned correctly.
+				if (_zoomState.isZoomed != ::IsZoomed(hWnd))
+				{
+					_zoomState.isZoomed = ::IsZoomed(hWnd);
 					AdjustOverlayPosition();
 				}
 
