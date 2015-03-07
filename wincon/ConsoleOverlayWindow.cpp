@@ -5,7 +5,6 @@
 #include <Shellapi.h>
 #include <windowsx.h>
 
-
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
 	_selectionHelper(_consoleHelper),
 	_selectionView(_consoleHelper, _selectionHelper),
@@ -25,10 +24,16 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	wcex.hInstance = ::GetModuleHandle(NULL);
 	wcex.lpszClassName = L"ConsoleOverlayWindow-CCBE8432-6AC5-476C-8EE6-E4E21DB90138";
 	wcex.lpfnWndProc = SimpleWindow::Static_WndProc;
+	wcex.hbrBackground = GetStockBrush(HOLLOW_BRUSH);
 #ifdef _DEBUG
 	wcex.hbrBackground = ::CreateSolidBrush(RGB(255, 0, 0));
 	wcex.hCursor = ::LoadCursor(NULL, IDC_CROSS);
 #endif
+
+	// NOTE: without the following set there are drawing artifacts especialy when maximizing/restoring 
+	// the console. it seems like part of the window becomes "dirty" and loose its transparency property.
+	// TODO: find out why.
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
 
 	if (!SimpleWindow::RegisterWindowClass(wcex))
 		return false;
@@ -48,6 +53,7 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 
 	debug_print("ConsoleOverlayWindow::Create - overlay window created, hwnd=%#x\n", _hWndOverlay);
 
+	// setup window for alpha transperancy
 #ifdef _DEBUG
 	::SetLayeredWindowAttributes(_hWndOverlay, 0, 100, LWA_ALPHA);
 #else
