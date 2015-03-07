@@ -100,8 +100,6 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	// mark that the overlay window can accept dropping files onto it
 	::DragAcceptFiles(_hWndOverlay, TRUE);
 
-	::AttachThreadInput(::GetCurrentThreadId(), _consoleWindowThreadId, TRUE);
-
 	return true;
 }
 
