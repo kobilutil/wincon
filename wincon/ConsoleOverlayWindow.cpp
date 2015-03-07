@@ -36,72 +36,62 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	_hWndConsole = ::GetConsoleWindow();
 	_consoleWindowThreadId = consoleWindowThreadId;
 
-	DWORD style = WS_POPUP;// WS_OVERLAPPEDWINDOW;
-	DWORD exstyle = WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_ACCEPTFILES;
-
 	// making the console window as the owner will cause this window to always stay above it.
 	// in addition when the console window is minimized this window will be automatically hidden as well.
-	HWND hWnd = CreateWindowEx(exstyle, 
-		wcex.lpszClassName, nullptr, style, 
-#ifdef _DEBUG
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-#else
-		0, 0, 0, 0,
-#endif
-		//NULL,
-		_hWndConsole, 		// use console's window as the owner
-		nullptr, wcex.hInstance, this);
-
-	if (!hWnd)
+	_hWndOverlay = CreateWindowEx(WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_ACCEPTFILES, 
+		wcex.lpszClassName, NULL, WS_POPUP, 0, 0, 0, 0, _hWndConsole, NULL, wcex.hInstance, this);
+	if (!_hWndOverlay)
 	{
 		debug_print("ConsoleOverlayWindow::Create - CreateWindowEx failed, err=%#x\n", ::GetLastError());
 		return false;
 	}
 
-#ifdef _DEBUG
-	::SetLayeredWindowAttributes(hWnd, 0, 100, LWA_ALPHA);
-#else
-	::SetLayeredWindowAttributes(hWnd, 0, 1, LWA_ALPHA);
-#endif
-
-	_hWndOverlay = hWnd;
 	debug_print("ConsoleOverlayWindow::Create - overlay window created, hwnd=%#x\n", _hWndOverlay);
+
+#ifdef _DEBUG
+	::SetLayeredWindowAttributes(_hWndOverlay, 0, 100, LWA_ALPHA);
+#else
+	::SetLayeredWindowAttributes(_hWndOverlay, 0, 1, LWA_ALPHA);
+#endif
 
 	if (!_selectionView.Create(_hWndConsole, _hWndOverlay))
 		return false;
-
-	//SetConsoleWindowAsTheOwner();
 
 	ReOpenConsoleHandles();
 
 	SetupWinEventHooks();
 
-//#ifdef _DEBUG
-	::ShowWindow(hWnd, SW_SHOWNOACTIVATE);
-	::UpdateWindow(hWnd);
-//#endif
-
+	// place the overlay window directly above the console window
 	AdjustOverlayPosition();
-
 	AdjustOverlayZOrder();
 
+	// create the tooltip for displaying the console's size while resizing
 	if (!_sizeTooltip.Create(_hWndOverlay))
 		debug_print("ConsoleOverlayWindow::Create - _sizeTooltip.Create failed, err=%#x\n", ::GetLastError());
 
-	_resizeOperation.OnSizeChanged([this]() {
+	// register for OnSizeChanged notification 
+	_resizeOperation.OnSizeChanged([this]() 
+	{
 		auto size = _resizeOperation.GetRectangle().size();
 		auto changed = ResizeConsole(size);
-		AdjustOverlayPosition();
 
+		// while the resize operation continues
 		if (_resizeOperation.IsActive())
 		{
+			// update the tooltip to display the current size of the console
 			if (changed)
 				UpdateSizeTooltipText();
 		}
+		// when the resize operation finished
 		else
+		{
+			// hide the tooltip and adjust the overlay position for the final size of the console
 			_sizeTooltip.Show(false);
+			AdjustOverlayPosition();
+		}
 	});
 
+	// mark that the overlay window can accept dropping files onto it
 	::DragAcceptFiles(_hWndOverlay, TRUE);
 
 	return true;
@@ -353,7 +343,8 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 			//| SWP_ASYNCWINDOWPOS
 			| SWP_NOREPOSITION
 			| SWP_NOZORDER
-			| SWP_NOSENDCHANGING);
+			| SWP_NOSENDCHANGING
+			| SWP_SHOWWINDOW);
 
 		_selectionView.AdjustPosition();
 	}
