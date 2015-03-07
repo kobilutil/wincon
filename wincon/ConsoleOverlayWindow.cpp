@@ -100,6 +100,8 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	// mark that the overlay window can accept dropping files onto it
 	::DragAcceptFiles(_hWndOverlay, TRUE);
 
+	::AttachThreadInput(::GetCurrentThreadId(), _consoleWindowThreadId, TRUE);
+
 	return true;
 }
 
@@ -272,16 +274,14 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 	// it will be done by cutting out specific regions from the overlay window.
 
 	auto consoleWindowScrollbarsStyle = ::GetWindowLongPtr(_hWndConsole, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
-	auto overlayWindowScrollbarsStyle = ::GetWindowLongPtr(_hWndOverlay, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
 
 	auto consoleWindowRect = GetWindowRect(_hWndConsole);
 	auto overlayWindowRect = GetWindowRect(_hWndOverlay);
 
-	// if the console's size or scrollbars were changed then the clipping areas of the overlay window need to be fixed
-	if ((overlayWindowRect.size() != consoleWindowRect.size()) ||
-		(consoleWindowScrollbarsStyle != overlayWindowScrollbarsStyle))
+	// if the console's size changed then the clipping areas of the overlay window need to be fixed
+	if (overlayWindowRect.size() != consoleWindowRect.size())
 	{
-		debug_print("AdjustOverlayPosition: width or style changed\n");
+		debug_print("AdjustOverlayPosition: size changed\n");
 
 		// get console's client area rectangle in global desktop coordinates
 		rectangle consoleClientRect{
