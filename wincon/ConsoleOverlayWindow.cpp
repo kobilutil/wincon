@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <Shellapi.h>
 #include <windowsx.h>
+#include <zmouse.h>
+
 
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
 	_selectionHelper(_consoleHelper),
@@ -112,20 +114,21 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 		{
 		case EVENT_CONSOLE_CARET:
 			if (_selectionHelper.IsShowing())
-			{
 				_selectionHelper.Clear();
-			}
 			break;
 		case EVENT_CONSOLE_UPDATE_SCROLL:
 			//debug_print("CONSOLE_SCROLL - %ld %ld\n", idObject, idChild);
 			break;
 		case EVENT_CONSOLE_LAYOUT:
+			//debug_print("CONSOLE_LAYOUT - %ld %ld\n", idObject, idChild);
+
+			DetectConsoleMaximizedRestoredStates();
+
 			if (_selectionHelper.IsShowing())
 			{
 				_consoleHelper.RefreshInfo();
 				_selectionView.Refresh();
 			}
-			//debug_print("CONSOLE_LAYOUT - %ld %ld\n", idObject, idChild);
 			break;
 		case EVENT_SYSTEM_MOVESIZESTART:
 			break;
@@ -158,33 +161,7 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			// however we only interested in identifying when the console is maximized and restored.
 			if ((hWnd == _hWndConsole) && (idObject == OBJID_WINDOW))
 			{
-				//debug_print("LOCATIONCHANGE - %ld %ld\n", idObject, idChild);
-
-				// if the console has just been maximized
-				if (!_zoomState.isZoomed && ::IsZoomed(_hWndConsole))
-				{
-					// save the previous size
-					_zoomState.normalSize = _consoleHelper.BufferView().size();
-
-					// resize to console's buffer view to maximum available
-					auto maxSize = _consoleHelper.LargestViewSize();
-					_consoleHelper.Resize(maxSize);
-				}
-				// if the console has just been restored
-				else if (_zoomState.isZoomed && !::IsZoomed(_hWndConsole))
-				{
-					// restore the previous size
-					if (_zoomState.normalSize)
-						_consoleHelper.Resize(_zoomState.normalSize);
-				}
-
-				// if console changed from normal to maximized or vice versa
-				// then make sure the overlay is positioned correctly.
-				if (_zoomState.isZoomed != ::IsZoomed(hWnd))
-				{
-					_zoomState.isZoomed = ::IsZoomed(hWnd);
-					AdjustOverlayPosition();
-				}
+				debug_print("LOCATIONCHANGE - %ld %ld\n", idObject, idChild);
 
 				if (_selectionHelper.IsShowing())
 					_selectionView.AdjustPosition();
@@ -475,6 +452,37 @@ void ConsoleOverlayWindow::OnWM_LButtonDown(HWND hWnd, BOOL fDoubleClick, int x,
 	}
 
 	_selectionOperation.Start(_hWndOverlay, p, mode);
+}
+
+void ConsoleOverlayWindow::DetectConsoleMaximizedRestoredStates()
+{
+	auto isZoomed = ::IsZoomed(_hWndConsole);
+
+	// if the console has just been maximized
+	if (isZoomed && !_zoomState.isZoomed)
+	{
+		// save the previous size
+		_zoomState.normalSize = _consoleHelper.BufferView().size();
+
+		// resize to console's buffer view to maximum available
+		auto maxSize = _consoleHelper.LargestViewSize();
+		_consoleHelper.Resize(maxSize);
+	}
+	// if the console has just been restored
+	else if (!isZoomed && _zoomState.isZoomed)
+	{
+		// restore the previous size
+		if (_zoomState.normalSize)
+			_consoleHelper.Resize(_zoomState.normalSize);
+	}
+
+	// if the console changed from normal to maximized or vice versa
+	// then make sure the overlay is positioned correctly.
+	if (_zoomState.isZoomed != isZoomed)
+	{
+		_zoomState.isZoomed = isZoomed;
+		AdjustOverlayPosition();
+	}
 }
 
 bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const

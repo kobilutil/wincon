@@ -40,6 +40,8 @@ private:
 	void OnWM_LButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
 	void OnWM_NCLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest);
 
+	void DetectConsoleMaximizedRestoredStates();
+
 	bool	IsConsoleWantsMouseEvents() const;
 	void	ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
