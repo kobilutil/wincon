@@ -140,7 +140,7 @@ void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, 
 
 		if (p2.y() != p1.y())
 			ReadOutputLineToCache(p2.y());
-		p2.x() = FindWordRightBoundary(_cachedLine, p2.x());
+		p2.x() = FindWordRightBoundary(_cachedLine, p2.x()) + 1;
 
 		break;
 
@@ -149,7 +149,7 @@ void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, 
 		p1.x() = 0;
 		p2.x() = FindEOL(_cachedLine);
 		if (p2.x() == 0)
-			p2.x() = _cachedLine.size() - 1;
+			p2.y() += 1;
 		break;
 	}
 }
@@ -202,11 +202,11 @@ bool SelectionHelper::CopyToClipboard(HWND hWndOwner)
 
 		// copy the unicode chars to the memmory buffer
 		// TODO: there is probably a bug here regarding handling COMMON_LVB_LEADING_BYTE/COMMON_LVB_TRAILING_BYTE
-		for (int i = begin; i <= end; ++i)
+		for (int i = begin; i < end; ++i)
 			*(pMemIt++) = _cachedLine[i].Char.UnicodeChar;
 
 		// add also the end-of-line chars
-		if ((y != _p2.y()) || (_mode == SELECT_LINE))
+		if (y != _p2.y())
 		{
 			*(pMemIt++) = '\r';
 			*(pMemIt++) = '\n';

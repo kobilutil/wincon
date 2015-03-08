@@ -85,7 +85,7 @@ void SelectionViewWindow::Refresh()
 		};
 
 		CutoffRegion(region, rectangle(0, p1.y(), p1.x(), cellSize.height()));
-		CutoffRegion(region, rectangle(p2.x() + cellSize.width(), p2.y(), clientArea.right() - (p2.x() + cellSize.width()), cellSize.height()));
+		CutoffRegion(region, rectangle(p2.x(), p2.y(), clientArea.right() - p2.x(), cellSize.height()));
 
 		_selectionRegion = std::move(region);
 	}
