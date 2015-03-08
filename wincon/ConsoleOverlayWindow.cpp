@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <Shellapi.h>
 #include <windowsx.h>
-#include <zmouse.h>
 
 
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
