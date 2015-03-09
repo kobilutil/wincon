@@ -101,6 +101,18 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	// mark that the overlay window can accept dropping files onto it
 	::DragAcceptFiles(_hWndOverlay, TRUE);
 
+	// HACK: without this the console's WinEvents are arriving with a delay. it is especially 
+	// noticeable when scrolling the console while there is a selection showing.
+	// experiments have shown that events are arriving just fine for other applications that
+	// are not actually attached to the console.
+	// TODO: find out why.
+	::SetTimer(NULL, 0, 10, [](HWND, UINT, UINT_PTR, DWORD){
+		// an empty timer handler also does the trick.
+		// it seems that just by setting a timer, the WinEvents arriving without a delay.
+		//::PostMessage(::GetConsoleWindow(), WM_NULL, 0, 0);
+		//::PostThreadMessage(::GetCurrentThreadId(), WM_NULL, 0, 0);
+	});
+
 	return true;
 }
 
@@ -160,7 +172,7 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			// however we only interested in identifying when the console is maximized and restored.
 			if ((hWnd == _hWndConsole) && (idObject == OBJID_WINDOW))
 			{
-				debug_print("LOCATIONCHANGE - %ld %ld\n", idObject, idChild);
+				//debug_print("LOCATIONCHANGE - %ld %ld\n", idObject, idChild);
 
 				if (_selectionHelper.IsShowing())
 					_selectionView.AdjustPosition();
