@@ -14,7 +14,7 @@ static int GetCharCategory(WCHAR c)
 	return ::IsCharAlphaNumeric(c) ? CHAR_CAT_ALPHANUM : iswblank(c) ? CHAR_CAT_SPACE : CHAR_CAT_OTHER;
 }
 
-static int GetCharCategory(CHAR_INFO ci)
+static int GetCharCategory(CHAR_INFO const& ci)
 {
 	return GetCharCategory(ci.Char.UnicodeChar);
 }
@@ -47,12 +47,10 @@ static size_t FindWordRightBoundary(std::vector<CHAR_INFO> const& line, size_t p
 
 static size_t FindEOL(std::vector<CHAR_INFO> const& line)
 {
-	auto lastIndex = line.size() - 1;
+	if (GetCharCategory(line.back()) != CHAR_CAT_SPACE)
+		return line.size();
 
-	if (GetCharCategory(line[lastIndex].Char.UnicodeChar) != CHAR_CAT_SPACE)
-		return lastIndex;
-
-	return FindWordLeftBoundary(line, lastIndex);
+	return FindWordLeftBoundary(line, line.size() - 1);
 }
 
 
@@ -140,17 +138,39 @@ void SelectionHelper::AdjustSelectionAccordingToMode(enum Mode mode, point& p1, 
 
 		if (p2.y() != p1.y())
 			ReadOutputLineToCache(p2.y());
-		p2.x() = FindWordRightBoundary(_cachedLine, p2.x()) + 1;
+
+		p2.x() = FindWordRightBoundary(_cachedLine, p2.x()) + 1;	
+		// +1 because p2.x is exclusive and it points to a cell just after the selection.
+
+		// if the user has selected the empty space at the end of the row, 
+		// then wrap the selection to the beginning of the next row.
+		if ((p2.x() == _cachedLine.size()) && (GetCharCategory(_cachedLine.back()) == CHAR_CAT_SPACE))
+		{
+			p2.x() = 0;
+			p2.y() += 1;
+		}
 
 		break;
 
 	case SelectionHelper::SELECT_LINE:
-		ReadOutputLineToCache(p2.y());
-		p1.x() = 0;
-		p2.x() = FindEOL(_cachedLine);
-		if (p2.x() == 0)
-			p2.y() += 1;
-		break;
+		{
+			p1.x() = 0;
+
+			ReadOutputLineToCache(p2.y());
+			int eolPos = FindEOL(_cachedLine);
+
+			// if the user has selected the empty space at the end of the row, or the row contains text up
+			// untill the end with no space at all, then wrap the selection to the beginning of the next row.
+			if ((p2.x() >= eolPos) || (eolPos == _cachedLine.size()))
+			{
+				p2.x() = 0;
+				p2.y() += 1;
+			}
+			else
+				p2.x() = eolPos;
+
+			break;
+		}
 	}
 }
 
