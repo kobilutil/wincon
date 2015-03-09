@@ -407,11 +407,12 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 UINT ConsoleOverlayWindow::OnWM_NCHitTest(HWND hWnd, int x, int y)
 {
-	return FORWARD_WM_NCHITTEST(_hWndConsole, x, y, ::DefWindowProc);
+	return ::SendMessage(_hWndConsole, WM_NCHITTEST, 0, MAKELPARAM(x, y));
 }
 
 BOOL ConsoleOverlayWindow::OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeHitTest, UINT msg)
 {
+	// note that the codeHitTest is actually the one we got from the console
 	if (codeHitTest != HTCLIENT)
 		return FORWARD_WM_SETCURSOR(hwnd, hwndCursor, codeHitTest, msg, ::DefWindowProc);
 
