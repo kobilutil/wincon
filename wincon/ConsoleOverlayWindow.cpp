@@ -465,6 +465,8 @@ void ConsoleOverlayWindow::DetectConsoleMaximizedRestoredStates()
 
 		// resize to console's buffer view to maximum available
 		auto maxSize = _consoleHelper.LargestViewSize();
+
+		_consoleHelper.RefreshInfo();
 		_consoleHelper.Resize(maxSize);
 	}
 	// if the console has just been restored
@@ -472,7 +474,10 @@ void ConsoleOverlayWindow::DetectConsoleMaximizedRestoredStates()
 	{
 		// restore the previous size
 		if (_zoomState.normalSize)
+		{
+			_consoleHelper.RefreshInfo();
 			_consoleHelper.Resize(_zoomState.normalSize);
+		}
 	}
 
 	// if the console changed from normal to maximized or vice versa
