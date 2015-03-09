@@ -1,6 +1,12 @@
 # wincon
 Resizing and Selection for the Native Console
 
+## Features
+- Resize the console like any other window
+- Row based selection of text like in a normal editor
+- Select whole words or lines by double or tripple clicking
+- Maximize to largest available desktop size
+
 ## Installation
 It is a 120kb single file executable, with no dependencies.
 
@@ -10,12 +16,6 @@ So [download][release], save and run.
 Double-clicking from the Explorer, wincon will launch %comspec% in a new console window and attach itself to it.
 
 Running from an existing console, will cause wincon to attach itself to that console.
-
-## Features
-- Resize the console like any other window
-- Row based selection of text like in a normal editor
-- Select whole words or lines by double or tripple clicking
-- Maximize to largest available desktop size
 
 ## Notes
 - Resizing using the left side borders is not implemented yet
