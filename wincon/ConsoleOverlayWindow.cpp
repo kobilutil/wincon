@@ -20,49 +20,21 @@ ConsoleOverlayWindow::~ConsoleOverlayWindow()
 
 bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 {
-	::WNDCLASSEX wcex{};
-	wcex.cbSize = sizeof(wcex);
-	wcex.hInstance = ::GetModuleHandle(NULL);
-	wcex.lpszClassName = L"ConsoleOverlayWindow-CCBE8432-6AC5-476C-8EE6-E4E21DB90138";
-	wcex.lpfnWndProc = SimpleWindow::Static_WndProc;
-	wcex.hbrBackground = GetStockBrush(HOLLOW_BRUSH);
-#ifdef _DEBUG
-	wcex.hbrBackground = ::CreateSolidBrush(RGB(255, 0, 0));
-	wcex.hCursor = ::LoadCursor(NULL, IDC_CROSS);
-#endif
-
-	// NOTE: without the following set there are drawing artifacts especialy when maximizing/restoring 
-	// the console. it seems like part of the window becomes "dirty" and loose its transparency property.
-	// TODO: find out why.
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-
-	if (!SimpleWindow::RegisterWindowClass(wcex))
-		return false;
-
 	_hWndConsole = ::GetConsoleWindow();
 	_consoleWindowThreadId = consoleWindowThreadId;
 
-	// making the console window as the owner will cause this window to always stay above it.
-	// in addition when the console window is minimized this window will be automatically hidden as well.
-	_hWndOverlay = CreateWindowEx(WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_ACCEPTFILES, 
-		wcex.lpszClassName, NULL, WS_POPUP, 0, 0, 0, 0, _hWndConsole, NULL, wcex.hInstance, this);
+	// create the overlay window
+	_hWndOverlay = CreateOverlayWindow();
 	if (!_hWndOverlay)
-	{
-		debug_print("ConsoleOverlayWindow::Create - CreateWindowEx failed, err=%#x\n", ::GetLastError());
 		return false;
-	}
 
-	debug_print("ConsoleOverlayWindow::Create - overlay window created, hwnd=%#x\n", _hWndOverlay);
-
-	// setup window for alpha transperancy
-#ifdef _DEBUG
-	::SetLayeredWindowAttributes(_hWndOverlay, 0, 100, LWA_ALPHA);
-#else
-	::SetLayeredWindowAttributes(_hWndOverlay, 0, 1, LWA_ALPHA);
-#endif
-
+	// create the selection view window
 	if (!_selectionView.Create(_hWndConsole, _hWndOverlay))
 		return false;
+
+	// create the tooltip for displaying the console's size while resizing
+	if (!_sizeTooltip.Create(_hWndOverlay))
+		debug_print("ConsoleOverlayWindow::Create - _sizeTooltip.Create failed, err=%#x\n", ::GetLastError());
 
 	ReOpenConsoleHandles();
 
@@ -71,10 +43,6 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	// place the overlay window directly above the console window
 	AdjustOverlayPosition();
 	AdjustOverlayZOrder();
-
-	// create the tooltip for displaying the console's size while resizing
-	if (!_sizeTooltip.Create(_hWndOverlay))
-		debug_print("ConsoleOverlayWindow::Create - _sizeTooltip.Create failed, err=%#x\n", ::GetLastError());
 
 	// register for OnSizeChanged notification 
 	_resizeOperation.OnSizeChanged([this]() 
@@ -114,6 +82,49 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	});
 
 	return true;
+}
+
+HWND ConsoleOverlayWindow::CreateOverlayWindow()
+{
+	::WNDCLASSEX wcex{};
+	wcex.cbSize = sizeof(wcex);
+	wcex.hInstance = ::GetModuleHandle(NULL);
+	wcex.lpszClassName = L"ConsoleOverlayWindow-CCBE8432-6AC5-476C-8EE6-E4E21DB90138";
+	wcex.lpfnWndProc = SimpleWindow::Static_WndProc;
+	wcex.hbrBackground = GetStockBrush(HOLLOW_BRUSH);
+#ifdef _DEBUG
+	wcex.hbrBackground = ::CreateSolidBrush(RGB(255, 0, 0));
+	wcex.hCursor = ::LoadCursor(NULL, IDC_CROSS);
+#endif
+
+	// NOTE: without the following set there are drawing artifacts especialy when maximizing/restoring 
+	// the console. it seems like part of the window becomes "dirty" and loose its transparency property.
+	// TODO: find out why.
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+
+	if (!SimpleWindow::RegisterWindowClass(wcex))
+		return false;
+
+	// making the console window as the owner will cause this window to always stay above it.
+	// in addition when the console window is minimized this window will be automatically hidden as well.
+	auto hWnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_ACCEPTFILES,
+		wcex.lpszClassName, NULL, WS_POPUP, 0, 0, 0, 0, _hWndConsole, NULL, wcex.hInstance, this);
+	if (!hWnd)
+	{
+		debug_print("ConsoleOverlayWindow::CreateOverlayWindow - CreateWindowEx failed, err=%#x\n", ::GetLastError());
+		return NULL;
+	}
+
+	debug_print("ConsoleOverlayWindow::CreateOverlayWindow - overlay window created, hwnd=%#x\n", hWnd);
+
+	// setup window for alpha transperancy
+#ifdef _DEBUG
+	::SetLayeredWindowAttributes(hWnd, 0, 100, LWA_ALPHA);
+#else
+	::SetLayeredWindowAttributes(hWnd, 0, 1, LWA_ALPHA);
+#endif
+
+	return hWnd;
 }
 
 void ConsoleOverlayWindow::SetupWinEventHooks()

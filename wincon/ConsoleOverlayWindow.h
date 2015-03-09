@@ -22,6 +22,8 @@ public:
 	bool Create(DWORD consoleWindowThreadId);
 
 private:
+	HWND CreateOverlayWindow();
+
 	void AdjustOverlayPosition();
 	void AdjustOverlayZOrder();
 	void SetConsoleWindowAsTheOwner();
