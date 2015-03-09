@@ -7,7 +7,9 @@ bool TrackingTooltip::Create(HWND hWndOwner)
 	HWND hWndTooltip = ::CreateWindowEx(0,
 		TOOLTIPS_CLASS, 0, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		hWndOwner, NULL, NULL, NULL);
+		NULL/*hWndOwner*/, NULL, NULL, NULL); // HACK: when passing the hWnd of the overlay window here
+	// it causes the console's properties dialog to open behind the console window at first.
+	// TODO: find out why.
 
 	if (!hWndTooltip)
 		return false;
