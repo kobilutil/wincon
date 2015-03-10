@@ -531,7 +531,11 @@ bool ConsoleOverlayWindow::IsConsoleWantsMouseEvents() const
 	auto mode = _consoleHelper.InputMode();
 	bool isMouseInput = ((mode & ENABLE_MOUSE_INPUT) != 0);
 
-	bool isOverrideKeyPressed = ((::GetAsyncKeyState(VK_MENU) < 0) && (::GetAsyncKeyState(VK_CONTROL) < 0));
+	// for now use only the ctrl key as an override key since holding the alt key seems to 
+	// prevent the console from opening its native context menu.
+	// TODO: consider instead of holding the modifier key(s) the user can alternate between 2 states
+	//bool isOverrideKeyPressed = ((::GetAsyncKeyState(VK_MENU) < 0) && (::GetAsyncKeyState(VK_CONTROL) < 0));
+	bool isOverrideKeyPressed = (::GetAsyncKeyState(VK_CONTROL) < 0);
 
 	return (isMouseInput && !isOverrideKeyPressed) || (!isMouseInput && isOverrideKeyPressed);
 }
