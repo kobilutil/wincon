@@ -22,7 +22,7 @@ Running from an existing console, will cause wincon to attach itself to that con
 - Resizing using the left side borders is not implemented yet.
 - Column based selection is not implemented yet (native console's box selection is still available via the menu).
 - The selection will be automatically copied to the clipboard.
-- Pasting will normalize EOL and change <tab> to <space>.
+- Pasting will normalize EOL and expand tabs to spaces.
 - Using the override key (ctrl) enables wincon's selection even for applications that usually want to handle the mouse by themselves (like Far Manager for example).
 
 ## Screenshots
