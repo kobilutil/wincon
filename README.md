@@ -5,6 +5,7 @@ Resizing and Selection for the Native Console
 - Resize the console like any other window.
 - Row based selection of text like in a normal editor.
 - Select whole words or lines by double or tripple clicking.
+- Paste with right/middle mouse buttons.
 - Maximize to largest available desktop size.
 
 ## Installation
@@ -21,6 +22,7 @@ Running from an existing console, will cause wincon to attach itself to that con
 - Resizing using the left side borders is not implemented yet.
 - Column based selection is not implemented yet (native console's box selection is still available via the menu).
 - The selection will be automatically copied to the clipboard.
+- Pasting will normalize EOL and change <tab> to <space>.
 - Using the override key (ctrl) enables wincon's selection even for applications that usually want to handle the mouse by themselves (like Far Manager for example).
 
 ## Screenshots
