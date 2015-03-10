@@ -213,31 +213,10 @@ bool ConsoleHelper::WriteInput(LPCWSTR str)
 {
 	std::vector<INPUT_RECORD> buffer;
 
-	// prepare the INPUT_RECORD buffer from the input string
-	for (auto pstr = str; *pstr; ++pstr)
+	auto add_char = [&buffer](WCHAR ch)
 	{
-		auto ch = *pstr;
-
-		// perform a simple char based filtering: [crlf->cr], [lf->cr], [tab->space]
-		switch (ch)
-		{
-		case 13:	// CR (Carriage return, '\r', 0x0D, 13 in decimal) 
-			if (*(pstr + 1) == 10)
-				++pstr;
-			break;
-		case 10:	// LF (Line feed, '\n', 0x0A, 10 in decimal) 
-			ch = 13;
-			break;
-		case L'\t':
-			ch = L' ';
-		default:
-			if (ch < L' ')	// skip any char in the low unprintable ascii range
-				continue;
-			break;
-		}
-
-		// NOTE: the idea to use VK_PACKET is from observing what has been posted to the console when
-		// using SendInput() to simulate user input.
+		// NOTE: the idea to use VK_PACKET is from observing what has been posted to 
+		// the console when using SendInput() to simulate user input.
 		INPUT_RECORD inp{};
 		inp.EventType = KEY_EVENT;
 		inp.Event.KeyEvent.wVirtualKeyCode = VK_PACKET;
@@ -245,6 +224,49 @@ bool ConsoleHelper::WriteInput(LPCWSTR str)
 		inp.Event.KeyEvent.bKeyDown = TRUE;
 
 		buffer.push_back(inp);
+	};
+
+	auto add_eol = [&buffer]()
+	{
+		INPUT_RECORD inp{};
+		inp.EventType = KEY_EVENT;
+		inp.Event.KeyEvent.wVirtualKeyCode = VK_RETURN;
+		inp.Event.KeyEvent.wVirtualScanCode = ::MapVirtualKey(VK_RETURN, MAPVK_VK_TO_VSC);
+		inp.Event.KeyEvent.uChar.UnicodeChar = ::MapVirtualKey(VK_RETURN, MAPVK_VK_TO_CHAR);;
+		inp.Event.KeyEvent.bKeyDown = TRUE;
+		buffer.push_back(inp);
+
+		inp.Event.KeyEvent.bKeyDown = FALSE;
+		buffer.push_back(inp);
+	};
+
+	// prepare the INPUT_RECORD buffer from the input string
+	for (auto pstr = str; *pstr; ++pstr)
+	{
+		auto ch = *pstr;
+
+		// perform a simple char based filtering: [crlf->enter], [lf->enter], [tab->spaces]
+		switch (ch)
+		{
+		case L'\r':		// CR (Carriage return, '\r', 0x0D, 13 in decimal)
+			add_eol();
+			if (*(pstr + 1) == L'\n')	// skip the next '\n' if present
+				++pstr;
+			break;
+		case L'\n':		// LF (Line feed, '\n', 0x0A, 10 in decimal) 
+			add_eol();
+			break;
+		case L'\t':		// convert tab to 4 spaces
+			for (auto i = 0; i < 4; ++i)
+				add_char(L' ');
+			break;
+		default:
+			if (ch < L' ')	// skip any char in the low unprintable ascii range
+				break;
+
+			add_char(ch);
+			break;
+		}
 	}
 
 	// since the WriteConsoleInput is limited in the amount of input it can process in a single call,
