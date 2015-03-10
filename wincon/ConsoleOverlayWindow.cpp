@@ -393,6 +393,7 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_LButtonDown);
 
 	case WM_RBUTTONDOWN:
+		PasteFromClipboardToConsole();
 		break;
 
 	case WM_MBUTTONDOWN:
