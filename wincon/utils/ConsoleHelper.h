@@ -35,6 +35,7 @@ public:
 	void Resume();
 
 	bool WriteInput(::INPUT_RECORD const& inp);
+	bool WriteInput(LPCWSTR str);
 	bool ReadOutput(std::vector<CHAR_INFO>& buffer, rectangle const& region);
 
 	static bool IsRegularConsoleWindow(HWND hWnd);

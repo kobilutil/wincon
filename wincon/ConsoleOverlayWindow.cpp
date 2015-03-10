@@ -5,7 +5,6 @@
 #include <Shellapi.h>
 #include <windowsx.h>
 
-
 ConsoleOverlayWindow::ConsoleOverlayWindow() :
 	_selectionHelper(_consoleHelper),
 	_selectionView(_consoleHelper, _selectionHelper),
@@ -393,6 +392,13 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	HANDLE_MSG(hwnd, WM_NCLBUTTONDOWN, OnWM_NCLButtonDown);
 	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_LButtonDown);
 
+	case WM_RBUTTONDOWN:
+		break;
+
+	case WM_MBUTTONDOWN:
+		PasteFromClipboardToConsole();
+		break;
+
 	case WM_DROPFILES:
 		::PostMessage(_hWndConsole, msg, wParam, lParam);
 		break;
@@ -608,4 +614,27 @@ void ConsoleOverlayWindow::UpdateSizeTooltipText()
 	wsprintf(str, L"%d, %d", size.width(), size.height());
 
 	_sizeTooltip.SetText(str);
+}
+
+void ConsoleOverlayWindow::PasteFromClipboardToConsole()
+{
+	std::wstring buffer;
+
+	// TODO: use scoped_resource
+	if (::OpenClipboard(_hWndOverlay))
+	{
+		auto hMem = ::GetClipboardData(CF_UNICODETEXT);
+		if (hMem)
+		{
+			auto pMem = ::GlobalLock(hMem);
+			if (pMem)
+			{
+				buffer.assign((LPCWSTR)pMem);
+				::GlobalUnlock(hMem);
+			}
+		}
+		::CloseClipboard();
+	}
+
+	_consoleHelper.WriteInput(buffer.c_str());
 }

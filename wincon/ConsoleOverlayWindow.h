@@ -52,6 +52,8 @@ private:
 
 	void UpdateSizeTooltipText();
 
+	void PasteFromClipboardToConsole();
+
 private:
 	DWORD	_consoleWindowThreadId;
 

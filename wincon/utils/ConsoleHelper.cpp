@@ -9,7 +9,7 @@ void ConsoleHelper::ReOpenHandles()
 	if (_hConOut)
 	{
 		// HACK: on windows7 there is a bug in conhost.exe that is causing it to crash when 
-		// trying to close a hande to a console's screen buffer that was actually created by 
+		// trying to close a handle to a console's screen buffer that was actually created by 
 		// another process with a call to CreateConsoleScreenBuffer and was opened here by 
 		// calling CreateFile("CONOUT$"..)
 		//
@@ -205,6 +205,79 @@ bool ConsoleHelper::WriteInput(::INPUT_RECORD const& inp)
 	DWORD num = 0;
 	if (!::WriteConsoleInput(_hConIn.get(), &inp, 1, &num) || (num != 1))
 		return false;
+
+	return true;
+}
+
+bool ConsoleHelper::WriteInput(LPCWSTR str)
+{
+	std::vector<INPUT_RECORD> buffer;
+
+	// prepare the INPUT_RECORD buffer from the input string
+	for (auto pstr = str; *pstr; ++pstr)
+	{
+		auto ch = *pstr;
+
+		// perform a simple char based filtering: [crlf->cr], [lf->cr], [tab->space]
+		switch (ch)
+		{
+		case 13:	// CR (Carriage return, '\r', 0x0D, 13 in decimal) 
+			if (*(pstr + 1) == 10)
+				++pstr;
+			break;
+		case 10:	// LF (Line feed, '\n', 0x0A, 10 in decimal) 
+			ch = 13;
+			break;
+		case L'\t':
+			ch = L' ';
+		default:
+			if (ch < L' ')	// skip any char in the low unprintable ascii range
+				continue;
+			break;
+		}
+
+		// NOTE: the idea to use VK_PACKET is from observing what has been posted to the console when
+		// using SendInput() to simulate user input.
+		INPUT_RECORD inp{};
+		inp.EventType = KEY_EVENT;
+		inp.Event.KeyEvent.wVirtualKeyCode = VK_PACKET;
+		inp.Event.KeyEvent.uChar.UnicodeChar = ch;
+		inp.Event.KeyEvent.bKeyDown = TRUE;
+
+		buffer.push_back(inp);
+	}
+
+	// since the WriteConsoleInput is limited in the amount of input it can process in a single call,
+	// sometimes, especially for long input strings, a call to WriteConsoleInput with a large buffer
+	// will fail, so we needs to split it into several calls with smaller chunks.
+
+	auto numToWrite = buffer.size();
+	for (size_t offset = 0; offset < buffer.size();)
+	{
+		// ensure that we are not exceeding the buffer size
+		numToWrite = std::min(numToWrite, buffer.size() - offset);
+
+		// try to write some/all of the buffer into the console input
+		DWORD numWriten = 0;
+		if (!::WriteConsoleInput(_hConIn.get(), buffer.data() + offset, numToWrite, &numWriten) || (numWriten != numToWrite))
+		{
+			auto rc = ::GetLastError();
+
+			// if this specific error occurs, then half the number of inputs we write with each 
+			// call to WriteConsoleInput and try again.
+			if (rc == ERROR_NOT_ENOUGH_MEMORY)
+			{
+				numToWrite /= 2;
+				continue;
+			}
+			// for any other error, just fail.
+			else
+				return false;
+		}
+
+		// go to the next input block
+		offset += numWriten;
+	}
 
 	return true;
 }
