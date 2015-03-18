@@ -5,6 +5,8 @@
 #include "wincon\utils\ConsoleHelper.h"
 #include <process.h>
 
+ConsoleHelper _consoleHelper;
+
 void print(HANDLE hFile, char const* format, ...)
 {
 	va_list args;
@@ -15,6 +17,14 @@ void print(HANDLE hFile, char const* format, ...)
 	DWORD written;
 	::WriteFile(hFile, line, len, &written, NULL);
 }
+
+//::GetWindowPlacement(hWnd, &wp2);
+//debug_print("** show=%d, norm=%d,%d-%d,%d min=%d,%d max=%d,%d\n", wp2.showCmd,
+//	wp2.rcNormalPosition.left, wp2.rcNormalPosition.top, wp2.rcNormalPosition.right, wp2.rcNormalPosition.bottom,
+//	wp2.ptMinPosition.x, wp2.ptMinPosition.y,
+//	wp2.ptMaxPosition.x, wp2.ptMaxPosition.y
+//	);
+
 
 char const* idobject_to_string(LONG idObject)
 {
@@ -53,6 +63,126 @@ char const* idobject_to_string(LONG idObject)
 	}
 }
 
+struct __zz{
+	bool	isMoveSize = false;
+	bool	isZoomed = false;
+	//bool	isTitlebarStateChanged = false;
+	DWORD	titlebarStateChangedEventTime = 0;
+	size	bufferSize;
+	size	bufferViewSize;
+	WINDOWPLACEMENT wp{};
+	DWORD	scrollbarsStye = 0;
+
+	bool IsTitlebarStateChanged(DWORD dwmsEventTime)
+	{
+		return (dwmsEventTime - titlebarStateChangedEventTime) < ::GetDoubleClickTime();
+	}
+
+	void Process(DWORD event, HWND hWnd, LONG idObject, LONG idChild, DWORD dwmsEventTime)
+	{
+		if (hWnd != ::GetConsoleWindow())
+			return;
+
+		switch (event)
+		{
+		case EVENT_CONSOLE_LAYOUT:
+			CheckZoomState(hWnd, dwmsEventTime);
+			break;
+		case EVENT_OBJECT_REORDER:
+			if (!isMoveSize && (!idObject && !idChild))
+			{
+				_consoleHelper.ReOpenHandles();
+				_consoleHelper.RefreshInfo();
+			}
+			break;
+		case EVENT_SYSTEM_MOVESIZESTART:
+			this->isMoveSize = true;
+			break;
+		case EVENT_SYSTEM_MOVESIZEEND:
+			this->isMoveSize = false;
+			break;
+		case EVENT_OBJECT_STATECHANGE:
+			if (idObject == OBJID_TITLEBAR)
+				titlebarStateChangedEventTime = dwmsEventTime;
+			break;
+		}
+	}
+
+	void CheckZoomState(HWND hWnd, DWORD dwmsEventTime)
+	{
+		//if (this->isMoveSize)
+		//	return;
+
+		auto isZoomed = (IsZoomed(hWnd) == TRUE);
+		if (isZoomed != this->isZoomed)
+		{
+			debug_print("** zoom state changed - %s\n", isZoomed ? "zoomed" : "normal");
+
+			if (isZoomed && !this->isZoomed)
+			{
+				this->bufferSize = _consoleHelper.BufferSize();
+				this->bufferViewSize = _consoleHelper.BufferView().size();
+
+				this->wp.length = sizeof(this->wp);
+				::GetWindowPlacement(hWnd, &this->wp);
+
+				this->scrollbarsStye = ::GetWindowLongPtr(hWnd, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
+
+				_consoleHelper.ReOpenHandles();
+				_consoleHelper.RefreshInfo();
+
+				_consoleHelper.Resize(_consoleHelper.LargestViewSize());
+
+				this->isZoomed = true;
+			}
+			else if (!isZoomed && this->isZoomed)
+			{
+				_consoleHelper.ReOpenHandles();
+				_consoleHelper.RefreshInfo();
+
+				if (!isMoveSize && !IsTitlebarStateChanged(dwmsEventTime))// && (_consoleHelper.BufferView().size() == _consoleHelper.LargestViewSize()))
+				{
+					auto wp2 = this->wp;
+					wp2.flags = 0;
+					wp2.showCmd = SW_MAXIMIZE;
+					::SetWindowPlacement(hWnd, &wp2);
+
+					//::ShowWindow(hWnd, SW_MAXIMIZE);
+					//_consoleHelper.RefreshInfo();
+					_consoleHelper.Resize(_consoleHelper.LargestViewSize());
+
+					this->scrollbarsStye = ::GetWindowLongPtr(hWnd, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
+				}
+				else
+				{
+					//WINDOWPLACEMENT wp{};
+					//wp.length = sizeof(wp);
+					//wp.rcNormalPosition = this->wp.rcNormalPosition;
+					//wp.showCmd = SW_SHOWNOACTIVATE;
+					//::SetWindowPlacement(hWnd, &wp);
+
+					////::ShowWindow(hWnd, SW_RESTORE);
+					//_consoleHelper.RefreshInfo();
+
+					_consoleHelper.Resize(this->bufferViewSize);
+
+					auto currScrollbarsStyle = ::GetWindowLongPtr(hWnd, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
+					if (currScrollbarsStyle != this->scrollbarsStye)
+					{
+						if ((this->scrollbarsStye & WS_VSCROLL) == 0)
+							_consoleHelper.BufferSize(this->bufferViewSize);
+					}
+
+					//_consoleHelper.BufferSize(this->bufferSize);
+					this->isZoomed = false;
+				}
+			}
+
+		}
+	}
+}
+s_consoleState;
+
 void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 {
 	static auto s_hWndConsole = ::GetConsoleWindow();
@@ -85,9 +215,11 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 			break;
 		case EVENT_SYSTEM_MOVESIZESTART:
 			debug_print("MOVESIZESTART - %ld %ld\n", idObject, idChild);
+			s_consoleState.isMoveSize = true;
 			break;
 		case EVENT_SYSTEM_MOVESIZEEND:
 			debug_print("MOVESIZEEND - %ld %ld\n", idObject, idChild);
+			s_consoleState.isMoveSize = false;
 			break;
 		case EVENT_SYSTEM_MINIMIZESTART:
 			debug_print("MINIMIZESTART - %ld %ld\n", idObject, idChild);
@@ -109,7 +241,12 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 
 			debug_print("LOCATIONCHANGE - %s(%ld) %ld\n", idobject_to_string(idObject), idObject, idChild);
 			break;
+		case EVENT_OBJECT_STATECHANGE:
+			debug_print("OBJECT_STATECHANGE - %s(%ld) %ld\n", idobject_to_string(idObject), idObject, idChild);
+			break;
 		}
+
+		s_consoleState.Process(event, hWnd, idObject, idChild, dwmsEventTime);
 	});
 
 	auto helper = [&_consoleWindowThreadId](DWORD eventMin, DWORD eventMax)
@@ -124,6 +261,7 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 		helper(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND),
 		helper(EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
 		helper(EVENT_OBJECT_REORDER, EVENT_OBJECT_REORDER),
+		helper(EVENT_OBJECT_STATECHANGE, EVENT_OBJECT_STATECHANGE),
 	};
 
 	static std::vector<scoped_wineventhook> _winEventHooks;
@@ -145,13 +283,14 @@ void test()
 	}
 	, 0, nullptr);
 
-	ConsoleHelper console;
-	console.ReOpenHandles();
-	console.RefreshInfo();
+	Sleep(1000);
+
+	_consoleHelper.ReOpenHandles();
+	_consoleHelper.RefreshInfo();
 
 	//print(console.hConOut().get(), "hwnd %x\n", ::GetConsoleWindow());
 
-	print(console.hConOut().get(), "1st buffer\n");
+	print(_consoleHelper.hConOut().get(), "1st buffer\n");
 	getchar();
 
 	{
@@ -174,7 +313,8 @@ void test()
 		getchar();
 	}
 
-	print(console.hConOut().get(), "back to 1st buffer\n");
+	::SetConsoleActiveScreenBuffer(::GetStdHandle(STD_OUTPUT_HANDLE));
+	print(::GetStdHandle(STD_OUTPUT_HANDLE), "back to 1st buffer\n");
 	getchar();
 }
 
