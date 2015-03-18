@@ -14,6 +14,9 @@ public:
 	void ReOpenHandles();
 	bool RefreshInfo();
 
+	scoped_handle const& hConIn() const		{ return _hConIn; }
+	scoped_handle const& hConOut() const	{ return _hConOut; }
+
 	size const& CellSize() const			{ return _cellSize; }
 	size const& BufferSize() const			{ return _bufferSize; }
 	rectangle const& BufferView() const		{ return _bufferView; }
