@@ -65,6 +65,8 @@ char const* idobject_to_string(LONG idObject)
 
 struct __zz{
 	bool	isMoveSize = false;
+	bool	isCaptured = false;
+	DWORD	captureEventTime = 0;
 	bool	isZoomed = false;
 	//bool	isTitlebarStateChanged = false;
 	DWORD	titlebarStateChangedEventTime = 0;
@@ -73,9 +75,12 @@ struct __zz{
 	WINDOWPLACEMENT wp{};
 	DWORD	scrollbarsStye = 0;
 
-	bool IsTitlebarStateChanged(DWORD dwmsEventTime)
+	bool IsUserInitiatedAction(DWORD dwmsEventTime)
 	{
-		return (dwmsEventTime - titlebarStateChangedEventTime) < ::GetDoubleClickTime();
+		auto dc = ::GetDoubleClickTime();
+		return isMoveSize || isCaptured ||
+			((dwmsEventTime - captureEventTime) < dc) ||
+			((dwmsEventTime - titlebarStateChangedEventTime) < dc);
 	}
 
 	void Process(DWORD event, HWND hWnd, LONG idObject, LONG idChild, DWORD dwmsEventTime)
@@ -89,7 +94,7 @@ struct __zz{
 			CheckZoomState(hWnd, dwmsEventTime);
 			break;
 		case EVENT_OBJECT_REORDER:
-			if (!isMoveSize && (!idObject && !idChild))
+			if (!isMoveSize && (idObject == OBJID_WINDOW) && (idChild == CHILDID_SELF))
 			{
 				_consoleHelper.ReOpenHandles();
 				_consoleHelper.RefreshInfo();
@@ -101,10 +106,36 @@ struct __zz{
 		case EVENT_SYSTEM_MOVESIZEEND:
 			this->isMoveSize = false;
 			break;
+		case EVENT_SYSTEM_CAPTURESTART:
+			this->isCaptured = true;
+			this->captureEventTime = dwmsEventTime;
+			break;
+		case EVENT_SYSTEM_CAPTUREEND:
+			this->isCaptured = false;
+			this->captureEventTime = dwmsEventTime;
+			break;
+		//case EVENT_SYSTEM_MINIMIZESTART:
+		//	_consoleHelper.ReOpenHandles();
+		//	_consoleHelper.RefreshInfo();
+		//	break;
+		case EVENT_SYSTEM_MINIMIZEEND:
+			RestoreFromMinimizedFixup(hWnd);
+			break;
 		case EVENT_OBJECT_STATECHANGE:
 			if (idObject == OBJID_TITLEBAR)
 				titlebarStateChangedEventTime = dwmsEventTime;
 			break;
+		}
+	}
+
+	void RestoreFromMinimizedFixup(HWND hWnd)
+	{
+		auto isZoomed = (IsZoomed(hWnd) == TRUE);
+		if (isZoomed && (isZoomed == this->isZoomed))
+		{
+			_consoleHelper.ReOpenHandles();
+			_consoleHelper.RefreshInfo();
+			_consoleHelper.Resize(_consoleHelper.LargestViewSize());
 		}
 	}
 
@@ -140,30 +171,20 @@ struct __zz{
 				_consoleHelper.ReOpenHandles();
 				_consoleHelper.RefreshInfo();
 
-				if (!isMoveSize && !IsTitlebarStateChanged(dwmsEventTime))// && (_consoleHelper.BufferView().size() == _consoleHelper.LargestViewSize()))
+				if (!IsUserInitiatedAction(dwmsEventTime))
 				{
 					auto wp2 = this->wp;
 					wp2.flags = 0;
 					wp2.showCmd = SW_MAXIMIZE;
 					::SetWindowPlacement(hWnd, &wp2);
 
-					//::ShowWindow(hWnd, SW_MAXIMIZE);
-					//_consoleHelper.RefreshInfo();
+					_consoleHelper.RefreshInfo();
 					_consoleHelper.Resize(_consoleHelper.LargestViewSize());
 
 					this->scrollbarsStye = ::GetWindowLongPtr(hWnd, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
 				}
 				else
 				{
-					//WINDOWPLACEMENT wp{};
-					//wp.length = sizeof(wp);
-					//wp.rcNormalPosition = this->wp.rcNormalPosition;
-					//wp.showCmd = SW_SHOWNOACTIVATE;
-					//::SetWindowPlacement(hWnd, &wp);
-
-					////::ShowWindow(hWnd, SW_RESTORE);
-					//_consoleHelper.RefreshInfo();
-
 					_consoleHelper.Resize(this->bufferViewSize);
 
 					auto currScrollbarsStyle = ::GetWindowLongPtr(hWnd, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
@@ -173,11 +194,9 @@ struct __zz{
 							_consoleHelper.BufferSize(this->bufferViewSize);
 					}
 
-					//_consoleHelper.BufferSize(this->bufferSize);
 					this->isZoomed = false;
 				}
 			}
-
 		}
 	}
 }
@@ -215,11 +234,9 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 			break;
 		case EVENT_SYSTEM_MOVESIZESTART:
 			debug_print("MOVESIZESTART - %ld %ld\n", idObject, idChild);
-			s_consoleState.isMoveSize = true;
 			break;
 		case EVENT_SYSTEM_MOVESIZEEND:
 			debug_print("MOVESIZEEND - %ld %ld\n", idObject, idChild);
-			s_consoleState.isMoveSize = false;
 			break;
 		case EVENT_SYSTEM_MINIMIZESTART:
 			debug_print("MINIMIZESTART - %ld %ld\n", idObject, idChild);
@@ -244,6 +261,12 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 		case EVENT_OBJECT_STATECHANGE:
 			debug_print("OBJECT_STATECHANGE - %s(%ld) %ld\n", idobject_to_string(idObject), idObject, idChild);
 			break;
+		case EVENT_SYSTEM_CAPTURESTART:
+			debug_print("CAPTURESTART - %s(%ld) %ld\n", idobject_to_string(idObject), idObject, idChild);
+			break;
+		case EVENT_SYSTEM_CAPTUREEND:
+			debug_print("CAPTUREEND - %s(%ld) %ld\n", idobject_to_string(idObject), idObject, idChild);
+			break;
 		}
 
 		s_consoleState.Process(event, hWnd, idObject, idChild, dwmsEventTime);
@@ -262,6 +285,7 @@ void SetupWinEventHooks(DWORD _consoleWindowThreadId)
 		helper(EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE),
 		helper(EVENT_OBJECT_REORDER, EVENT_OBJECT_REORDER),
 		helper(EVENT_OBJECT_STATECHANGE, EVENT_OBJECT_STATECHANGE),
+		helper(EVENT_SYSTEM_CAPTURESTART, EVENT_SYSTEM_CAPTUREEND),
 	};
 
 	static std::vector<scoped_wineventhook> _winEventHooks;
