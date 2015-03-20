@@ -19,7 +19,7 @@ Double-clicking from the Explorer, wincon will launch %comspec% in a new console
 Running from an existing console, will cause wincon to attach itself to that console.
 
 ## Notes
-- Resizing using the left side borders is not implemented yet.
+- ~~Resizing using the left side borders is not implemented yet.~~
 - Column based selection is not implemented yet (native console's box selection is still available via the menu).
 - The selection will be automatically copied to the clipboard.
 - Pasting will normalize EOL and expand tabs to spaces.
