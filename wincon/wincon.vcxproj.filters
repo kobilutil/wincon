@@ -105,9 +105,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="wincon.ico">
       <Filter>Resource Files</Filter>
     </Image>
