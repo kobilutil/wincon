@@ -152,6 +152,7 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 			}
 			break;
 		case EVENT_SYSTEM_MOVESIZESTART:
+			StartResizeOperation();
 			break;
 		case EVENT_SYSTEM_MOVESIZEEND:
 			AdjustOverlayPosition();
@@ -260,89 +261,24 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 	if (_resizeOperation.IsActive())
 		return;
 
-	// the overlay window should have the exact same size as the console window
+	// the overlay window should have the exact same size as the console's client area
 	// and should be placed directly above it.
 
-	// by covering the borders and the client area, the overlay window can override and supply
-	// new functionality, like better console resizing and modern selection support.
-
-	// note that the console's caption area and the scrollbars wont be covered thought.
-	// it will be done by cutting out specific regions from the overlay window.
-
-	auto consoleWindowScrollbarsStyle = ::GetWindowLongPtr(_hWndConsole, GWL_STYLE) & (WS_VSCROLL | WS_HSCROLL);
-
-	auto consoleWindowRect = GetWindowRect(_hWndConsole);
+	auto consoleClientRect = MapWindowPoints(_hWndConsole, HWND_DESKTOP, GetClientRect(_hWndConsole));
 	auto overlayWindowRect = GetWindowRect(_hWndOverlay);
-
-	// if the console's size changed then the clipping areas of the overlay window need to be fixed
-	if (overlayWindowRect.size() != consoleWindowRect.size())
-	{
-		debug_print("AdjustOverlayPosition: size changed\n");
-
-		// get console's client area rectangle in global desktop coordinates
-		rectangle consoleClientRect{
-			MapWindowPoints(_hWndConsole, HWND_DESKTOP, GetClientRect(_hWndConsole))
-		};
-
-		// TODO: maybe use GetSystemMetrics(..) instead? SM_CXBORDER? i couldn't figure it out thought
-		// there are also GetThemeSysSize and GetThemeMetric to consider
-		auto borderSize = consoleClientRect.left() - consoleWindowRect.left();
-		
-		// create the clipping region of the overlay window.
-		// start with a region that covers the whole window and then cut off the caption and the scrollbars areas.
-		scoped_gdi_region overlayRegion{ 
-			::CreateRectRgn(0, 0, consoleWindowRect.width(), consoleWindowRect.height()) 
-		};
-
-		// cut off the region that represents the caption area
-		CutoffRegion(overlayRegion, rectangle(
-			borderSize, 0,
-			consoleWindowRect.width() - 2 * borderSize,
-			consoleClientRect.top() - consoleWindowRect.top()
-		));
-
-		// cut off the vertical scrollbar area if it exists
-		if (consoleWindowScrollbarsStyle & WS_VSCROLL)
-		{
-			CutoffRegion(overlayRegion, rectangle(
-				consoleClientRect.right() - consoleWindowRect.left(),
-				consoleClientRect.top() - consoleWindowRect.top(),
-				::GetSystemMetrics(SM_CXVSCROLL),
-				consoleClientRect.height()
-			));
-		}
-
-		// cut off the horizontal scrollbar area if it exists
-		if (consoleWindowScrollbarsStyle & WS_HSCROLL)
-		{
-			CutoffRegion(overlayRegion, rectangle(
-				consoleClientRect.left() - consoleWindowRect.left(),
-				consoleClientRect.bottom() - consoleWindowRect.top(),
-				consoleClientRect.width(),
-				GetSystemMetrics(SM_CYHSCROLL)
-			));
-		}
-
-		// update the overlay window's clipping region
-		if (::SetWindowRgn(_hWndOverlay, overlayRegion.get(), TRUE))
-			// if successfull then windows now owns the above region handle
-			// so we need to detach our scoped_resource or else it will be (auto)deleted
-			overlayRegion.detach();
-	}
 
 	//AdjustOverlayZOrder();
 
-	if (overlayWindowRect != consoleWindowRect)
+	if (overlayWindowRect != consoleClientRect)
 	{
 		debug_print("AdjustOverlayPosition: %ld,%ld %ldx%ld\n", 
-			consoleWindowRect.left(), consoleWindowRect.top(),
-			consoleWindowRect.width(), consoleWindowRect.height());
+			consoleClientRect.left(), consoleClientRect.top(),
+			consoleClientRect.width(), consoleClientRect.height());
 
 		::SetWindowPos(_hWndOverlay, nullptr,
-			consoleWindowRect.left(), consoleWindowRect.top(),
-			consoleWindowRect.width(), consoleWindowRect.height(),
+			consoleClientRect.left(), consoleClientRect.top(),
+			consoleClientRect.width(), consoleClientRect.height(),
 			SWP_NOACTIVATE
-			//| SWP_ASYNCWINDOWPOS
 			| SWP_NOREPOSITION
 			| SWP_NOZORDER
 			| SWP_NOSENDCHANGING
@@ -386,10 +322,8 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 
 	switch (msg)
 	{
-	HANDLE_MSG(hwnd, WM_NCHITTEST, OnWM_NCHitTest);
 	HANDLE_MSG(hwnd, WM_SETCURSOR, OnWM_SetCursor);
 
-	HANDLE_MSG(hwnd, WM_NCLBUTTONDOWN, OnWM_NCLButtonDown);
 	HANDLE_MSG(hwnd, WM_LBUTTONDOWN, OnWM_LButtonDown);
 
 	case WM_RBUTTONDOWN:
@@ -423,16 +357,11 @@ LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
 	return 0;
 }
 
-UINT ConsoleOverlayWindow::OnWM_NCHitTest(HWND hWnd, int x, int y)
-{
-	return ::SendMessage(_hWndConsole, WM_NCHITTEST, 0, MAKELPARAM(x, y));
-}
-
 BOOL ConsoleOverlayWindow::OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeHitTest, UINT msg)
 {
 	// note that the codeHitTest is actually the one we got from the console
 	if (codeHitTest != HTCLIENT)
-		return FORWARD_WM_SETCURSOR(hwnd, hwndCursor, codeHitTest, msg, ::DefWindowProc);
+		return ::SendMessage(hwnd, WM_SETCURSOR, (WPARAM)_hWndConsole, MAKELPARAM(codeHitTest, msg));
 
 	if (IsConsoleWantsMouseEvents())
 		::SetCursor(::LoadCursor(nullptr, IDC_ARROW));
@@ -440,22 +369,6 @@ BOOL ConsoleOverlayWindow::OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeH
 		::SetCursor(::LoadCursor(nullptr, IDC_IBEAM));
 
 	return TRUE;
-}
-
-void ConsoleOverlayWindow::OnWM_NCLButtonDown(HWND hWnd, BOOL fDoubleClick, int x, int y, UINT hitTest)
-{
-	switch (hitTest)
-	{
-	case HTBOTTOM:
-	case HTRIGHT:
-	case HTBOTTOMRIGHT:
-		_resizeOperation.Start(_hWndOverlay, point(x, y), hitTest);
-
-		_sizeTooltip.SetPosition(MapWindowPoints(_hWndConsole, HWND_DESKTOP, point(10, 10)));
-		UpdateSizeTooltipText();
-		_sizeTooltip.Show(true);
-		break;
-	}
 }
 
 void ConsoleOverlayWindow::OnWM_LButtonDown(HWND hWnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
@@ -482,6 +395,31 @@ void ConsoleOverlayWindow::OnWM_LButtonDown(HWND hWnd, BOOL fDoubleClick, int x,
 	}
 
 	_selectionOperation.Start(_hWndOverlay, p, mode);
+}
+
+void ConsoleOverlayWindow::StartResizeOperation()
+{
+	auto p = GetCursorPos();
+	auto hitTest = ::SendMessage(_hWndConsole, WM_NCHITTEST, 0, MAKELPARAM(p.x(), p.y()));
+
+	switch (hitTest)
+	{
+	case HTBOTTOM:
+	case HTRIGHT:
+	case HTBOTTOMRIGHT:
+
+		// cancel the current operation
+		ReleaseCapture();
+		SetCapture(_hWndOverlay);
+		ReleaseCapture();
+
+		_resizeOperation.Start(_hWndOverlay, p, hitTest);
+
+		_sizeTooltip.SetPosition(MapWindowPoints(_hWndConsole, HWND_DESKTOP, point(10, 10)));
+		UpdateSizeTooltipText();
+		_sizeTooltip.Show(true);
+		break;
+	}
 }
 
 void ConsoleOverlayWindow::DetectConsoleMaximizedRestoredStates()

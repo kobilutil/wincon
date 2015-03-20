@@ -16,7 +16,7 @@ void ResizeOperation::Start(HWND hWnd, point const& anchor, UINT direction)
 	_hWnd = hWnd;
 	_anchor = anchor;
 	_direction = direction;
-	_initialRect = GetWindowRect(_hWnd);
+	_initialRect = GetWindowRect(::GetConsoleWindow());
 	_currentRect = _initialRect;
 	_isActive = true;
 

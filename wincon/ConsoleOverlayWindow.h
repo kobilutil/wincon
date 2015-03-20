@@ -36,18 +36,17 @@ private:
 
 	LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	UINT OnWM_NCHitTest(HWND hwnd, int x, int y);
 	BOOL OnWM_SetCursor(HWND hwnd, HWND hwndCursor, UINT codeHitTest, UINT msg);
-
 	void OnWM_LButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
-	void OnWM_NCLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT codeHitTest);
+
+	void StartResizeOperation();
 
 	void DetectConsoleMaximizedRestoredStates();
 
-	bool	IsConsoleWantsMouseEvents() const;
-	void	ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+	bool IsConsoleWantsMouseEvents() const;
+	void ForwardConsoleMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	int		DetectMultpleClicks(int x, int y);
+	int DetectMultpleClicks(int x, int y);
 	//point	MapConsolePoint(point const& p);
 
 	void UpdateSizeTooltipText();
