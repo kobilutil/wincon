@@ -26,7 +26,6 @@ private:
 
 	void AdjustOverlayPosition();
 	void AdjustOverlayZOrder();
-	void SetConsoleWindowAsTheOwner();
 
 	void ReOpenConsoleHandles();
 

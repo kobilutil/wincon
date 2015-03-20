@@ -64,9 +64,6 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 		}
 	});
 
-	// mark that the overlay window can accept dropping files onto it
-	::DragAcceptFiles(_hWndOverlay, TRUE);
-
 	// HACK: without this the console's WinEvents are arriving with a delay. it is especially 
 	// noticeable when scrolling the console while there is a selection showing.
 	// experiments have shown that events are arriving just fine for other applications that
@@ -121,6 +118,9 @@ HWND ConsoleOverlayWindow::CreateOverlayWindow()
 #else
 	::SetLayeredWindowAttributes(hWnd, 0, 1, LWA_ALPHA);
 #endif
+
+	// mark that the overlay window can accept dropping files onto it
+	::DragAcceptFiles(hWnd, TRUE);
 
 	return hWnd;
 }
@@ -204,17 +204,6 @@ void ConsoleOverlayWindow::SetupWinEventHooks()
 
 	for (auto h : hHooks)
 		_winEventHooks.push_back(scoped_wineventhook(h));
-}
-
-void ConsoleOverlayWindow::SetConsoleWindowAsTheOwner()
-{
-	_hWndConsole = ::GetConsoleWindow();
-
-	::SetWindowLongPtr(_hWndOverlay, GWL_HWNDPARENT, (LONG_PTR)_hWndConsole);
-
-	HWND hWndOwner = (HWND)::GetWindowLongPtr(_hWndOverlay, GWL_HWNDPARENT);
-	if (hWndOwner != _hWndConsole)
-		debug_print("ConsoleOverlayWindow::AttachToConsole - failed\n");
 }
 
 void ConsoleOverlayWindow::AdjustOverlayZOrder()
