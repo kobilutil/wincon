@@ -30,7 +30,7 @@ private:
 
 	void ReOpenConsoleHandles();
 
-	bool ResizeConsole(size const& requestedWindowSize);
+	bool ResizeConsole(rectangle const& requestedSizePos);
 
 	void SetupWinEventHooks();
 

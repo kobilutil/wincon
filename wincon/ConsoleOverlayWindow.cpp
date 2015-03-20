@@ -46,8 +46,7 @@ bool ConsoleOverlayWindow::Create(DWORD consoleWindowThreadId)
 	// register for OnSizeChanged notification 
 	_resizeOperation.OnSizeChanged([this]() 
 	{
-		auto size = _resizeOperation.GetRectangle().size();
-		auto changed = ResizeConsole(size);
+		auto changed = ResizeConsole(_resizeOperation.GetRectangle());
 
 		// while the resize operation continues
 		if (_resizeOperation.IsActive())
@@ -288,19 +287,31 @@ void ConsoleOverlayWindow::AdjustOverlayPosition()
 	}
 }
 
-bool ConsoleOverlayWindow::ResizeConsole(size const& requestedPixelSize)
+bool ConsoleOverlayWindow::ResizeConsole(rectangle const& requestedSizePos)
 {
 	if (!_consoleHelper.RefreshInfo())
 		return false;
 
 	auto currentPixelSize = GetWindowRect(_hWndConsole).size();
 
-	auto addedCells = (requestedPixelSize - currentPixelSize) / _consoleHelper.CellSize();
+	auto addedCells = (requestedSizePos.size() - currentPixelSize) / _consoleHelper.CellSize();
 	if (!addedCells)
 		return false;
 
 	auto newBufferView = _consoleHelper.BufferView() + addedCells;
-	return _consoleHelper.Resize(newBufferView);
+	auto rc = _consoleHelper.Resize(newBufferView);
+
+	if (rc)
+	{
+		auto newPixelSize = GetWindowRect(_hWndConsole);
+		if (newPixelSize.top_left() != requestedSizePos.top_left())
+		{
+			::SetWindowPos(_hWndConsole, NULL, requestedSizePos.left(), requestedSizePos.top(),
+				0, 0, SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
+		}
+	}
+
+	return rc;
 }
 
 LRESULT ConsoleOverlayWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -404,8 +415,13 @@ void ConsoleOverlayWindow::StartResizeOperation()
 
 	switch (hitTest)
 	{
-	case HTBOTTOM:
+	case HTLEFT:
 	case HTRIGHT:
+	case HTTOP:
+	case HTTOPLEFT:
+	case HTTOPRIGHT:
+	case HTBOTTOM:
+	case HTBOTTOMLEFT:
 	case HTBOTTOMRIGHT:
 
 		// cancel the current operation
@@ -415,7 +431,6 @@ void ConsoleOverlayWindow::StartResizeOperation()
 
 		_resizeOperation.Start(_hWndOverlay, p, hitTest);
 
-		_sizeTooltip.SetPosition(MapWindowPoints(_hWndConsole, HWND_DESKTOP, point(10, 10)));
 		UpdateSizeTooltipText();
 		_sizeTooltip.Show(true);
 		break;
@@ -553,6 +568,8 @@ void ConsoleOverlayWindow::UpdateSizeTooltipText()
 	wsprintf(str, L"%d, %d", size.width(), size.height());
 
 	_sizeTooltip.SetText(str);
+
+	_sizeTooltip.SetPosition(MapWindowPoints(_hWndConsole, HWND_DESKTOP, point(10, 10)));
 }
 
 void ConsoleOverlayWindow::PasteFromClipboardToConsole()

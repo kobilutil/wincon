@@ -70,11 +70,43 @@ void ResizeOperation::ResizeTo(point const& p)
 {
 	_currentRect = _initialRect;
 
-	if (_direction == HTRIGHT || _direction == HTBOTTOMRIGHT)
+	switch (_direction)
+	{
+	case HTLEFT:
+		_currentRect.left() += (p.x() - _anchor.x());
+		_currentRect.size().width() -= (p.x() - _anchor.x());
+		break;
+	case HTRIGHT:
 		_currentRect.size().width() += (p.x() - _anchor.x());
-
-	if (_direction == HTBOTTOM || _direction == HTBOTTOMRIGHT)
+		break;
+	case HTTOP:
+		_currentRect.top() += (p.y() - _anchor.y());
+		_currentRect.size().height() -= (p.y() - _anchor.y());
+		break;
+	case HTTOPLEFT:
+		_currentRect.top() += (p.y() - _anchor.y());
+		_currentRect.left() += (p.x() - _anchor.x());
+		_currentRect.size().width() -= (p.x() - _anchor.x());
+		_currentRect.size().height() -= (p.y() - _anchor.y());
+		break;
+	case HTTOPRIGHT:
+		_currentRect.top() += (p.y() - _anchor.y());
+		_currentRect.size().height() -= (p.y() - _anchor.y());
+		_currentRect.size().width() += (p.x() - _anchor.x());
+		break;
+	case HTBOTTOM:
 		_currentRect.size().height() += (p.y() - _anchor.y());
+		break;
+	case HTBOTTOMLEFT:
+		_currentRect.left() += (p.x() - _anchor.x());
+		_currentRect.size().width() -= (p.x() - _anchor.x());
+		_currentRect.size().height() += (p.y() - _anchor.y());
+		break;
+	case HTBOTTOMRIGHT:
+		_currentRect.size().width() += (p.x() - _anchor.x());
+		_currentRect.size().height() += (p.y() - _anchor.y());
+		break;
+	}
 
 	FireSizeChangedEvent();
 }
