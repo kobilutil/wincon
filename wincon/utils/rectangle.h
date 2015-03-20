@@ -3,6 +3,10 @@
 template <typename T, typename R = T>
 struct enable_if_type { typedef R type; };
 
+template <typename T> class basic_size;
+template <typename T> class basic_point;
+template <typename T> class basic_rectangle;
+
 template <typename T>
 class basic_size
 {
@@ -36,37 +40,26 @@ public:
 	value_type const& width() const		{ return _w; }
 	value_type const& height() const	{ return _h; }
 
-	template <typename U>
-	basic_size& operator+=(basic_size<U> const& other)
-	{
-		_w += other.width();
-		_h += other.height();
-		return *this;
-	}
+#define DEFINE_OPERATOR(OP, TYPE, P1, P2) \
+	template <typename U>								\
+	basic_size& operator OP=(TYPE<U> const& other)		\
+		{\
+		_w OP= other.P1();		\
+		_h OP= other.P2();		\
+		return *this;			\
+		}
 
-	template <typename U>
-	basic_size& operator-=(basic_size<U> const& other)
-	{
-		_w -= other.width();
-		_h -= other.height();
-		return *this;
-	}
+	DEFINE_OPERATOR(+, basic_size, width, height);
+	DEFINE_OPERATOR(-, basic_size, width, height);
+	DEFINE_OPERATOR(/, basic_size, width, height);
+	DEFINE_OPERATOR(*, basic_size, width, height);
 
-	template <typename U>
-	basic_size& operator/=(basic_size<U> const& other)
-	{
-		_w /= other.width();
-		_h /= other.height();
-		return *this;
-	}
+	DEFINE_OPERATOR(+, basic_point, x, y);
+	DEFINE_OPERATOR(-, basic_point, x, y);
+	DEFINE_OPERATOR(/, basic_point, x, y);
+	DEFINE_OPERATOR(*, basic_point, x, y);
 
-	template <typename U>
-	basic_size& operator*=(basic_size<U> const& other)
-	{
-		_w *= other.width();
-		_h *= other.height();
-		return *this;
-	}
+#undef DEFINE_OPERATOR
 
 private:
 	value_type	_w;
