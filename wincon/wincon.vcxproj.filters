@@ -69,6 +69,18 @@
     <ClInclude Include="OverlayApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MonitorApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Visual Studio 2013\Projects\test1\Win32Project1\TrayIcon.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="AboutDialog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PerConsoleContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -102,6 +114,18 @@
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="OverlayApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MonitorApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Visual Studio 2013\Projects\test1\Win32Project1\TrayIcon.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="AboutDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PerConsoleContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

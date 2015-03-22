@@ -36,26 +36,19 @@ DWORD RunProcess(LPCWSTR cmdLine)
 	return pi.dwProcessId;
 }
 
-int OverlayApp::Run()
+int OverlayApp::Run(HWND hWndConsole)
 {
-	debug_print("try attaching to parent process's console\n");
+	DWORD pid = 0;
+	::GetWindowThreadProcessId(hWndConsole, &pid);
+	if (!pid)
+		return 1;
 
-	::Sleep(100);
-	if (!::AttachConsole(ATTACH_PARENT_PROCESS))
+	debug_print("attaching to process's console. pid=%ld, hWnd=%#x\n", pid, hWndConsole);
+
+	if (!::AttachConsole(pid))
 	{
 		debug_print("AttachConsole failed. err=%#x", ::GetLastError());
-		debug_print("try attaching to new process console\n");
-
-		auto pid = RunProcess(OPTION_DEFAULT_CMDLINE);
-		if (!pid)
-			return 1;
-
-		::Sleep(100);
-		if (!::AttachConsole(pid))
-		{
-			debug_print("AttachConsole failed. err=%#x", ::GetLastError());
-			return 1;
-		}
+		return 1;
 	}
 
 	ConsoleHelper::InstallDefaultCtrlHandler();

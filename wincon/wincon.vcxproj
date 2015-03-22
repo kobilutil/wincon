@@ -78,8 +78,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Visual Studio 2013\Projects\test1\Win32Project1\TrayIcon.h" />
+    <ClInclude Include="AboutDialog.h" />
     <ClInclude Include="ConsoleOverlayWindow.h" />
+    <ClInclude Include="MonitorApp.h" />
     <ClInclude Include="OverlayApp.h" />
+    <ClInclude Include="PerConsoleContext.h" />
     <ClInclude Include="ResizeOperation.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SelectionHelper.h" />
@@ -97,8 +101,12 @@
     <ClInclude Include="wincon.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Visual Studio 2013\Projects\test1\Win32Project1\TrayIcon.cpp" />
+    <ClCompile Include="AboutDialog.cpp" />
     <ClCompile Include="ConsoleOverlayWindow.cpp" />
+    <ClCompile Include="MonitorApp.cpp" />
     <ClCompile Include="OverlayApp.cpp" />
+    <ClCompile Include="PerConsoleContext.cpp" />
     <ClCompile Include="ResizeOperation.cpp" />
     <ClCompile Include="SelectionHelper.cpp" />
     <ClCompile Include="SelectionOperation.cpp" />
