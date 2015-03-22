@@ -79,6 +79,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleOverlayWindow.h" />
+    <ClInclude Include="OverlayApp.h" />
     <ClInclude Include="ResizeOperation.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SelectionHelper.h" />
@@ -97,6 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ConsoleOverlayWindow.cpp" />
+    <ClCompile Include="OverlayApp.cpp" />
     <ClCompile Include="ResizeOperation.cpp" />
     <ClCompile Include="SelectionHelper.cpp" />
     <ClCompile Include="SelectionOperation.cpp" />

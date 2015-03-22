@@ -66,6 +66,9 @@
     <ClInclude Include="utils\TrackingTooltip.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="OverlayApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -97,6 +100,9 @@
     </ClCompile>
     <ClCompile Include="utils\TrackingTooltip.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayApp.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
