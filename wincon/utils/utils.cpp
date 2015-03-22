@@ -226,3 +226,13 @@ int CutoffRegion(scoped_gdi_region const& source, rectangle const& rect)
 
 	return ::CombineRgn(source.get(), source.get(), rgn.get(), RGN_DIFF);
 };
+
+void CenterWindow(HWND hWnd)
+{
+	auto rectWnd = GetWindowRect(hWnd);
+	auto rectDesktop = GetWindowRect(::GetDesktopWindow());
+
+	auto p = point(0, 0) + rectDesktop.size() / size(2, 2) - rectWnd.size() / size(2, 2);
+	::SetWindowPos(hWnd, NULL, p.x(), p.y(), 0, 0,
+		SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
+}

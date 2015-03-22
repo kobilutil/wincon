@@ -227,3 +227,4 @@ point		MapWindowPoints(HWND hWndFrom, HWND hWndTo, point const& p);
 point		GetCursorPos();
 bool		SetCursorPos(point const& p);
 int			CutoffRegion(scoped_gdi_region const& source, rectangle const& rect);
+void		CenterWindow(HWND hWnd);

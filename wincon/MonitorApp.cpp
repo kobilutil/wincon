@@ -67,7 +67,7 @@ bool MonitorApp::Init()
 
 	SetupWinEventHooks();
 
-	//StartHelpersForExistingConsoles();
+	StartHelpersForExistingConsoles();
 
 	RefreshTrayIconTooltip();
 
