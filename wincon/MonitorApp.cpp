@@ -14,7 +14,7 @@ using std::make_shared;
 
 
 MonitorApp::MonitorApp() :
-	_singleInstance(L"wincon-monitor-singleton-mutex-134A98C0-8FB7-4044-BE10-B669E878738C")
+	_singleInstance(L"wincon-MonitorApp-singleton-mutex-134A98C0-8FB7-4044-BE10-B669E878738C")
 {}
 
 MonitorApp::~MonitorApp()
@@ -49,7 +49,7 @@ bool MonitorApp::Init()
 	::WNDCLASSEX wcex{};
 	wcex.cbSize = sizeof(wcex);
 	wcex.hInstance = ::GetModuleHandle(NULL);
-	wcex.lpszClassName = L"ConsolesMonitorApp-HWND_MESSAGE-55023123-AAC7-45B8-9254-14EE6DBF5346";
+	wcex.lpszClassName = L"wincon-MonitorApp-HWND_MESSAGE-55023123-AAC7-45B8-9254-14EE6DBF5346";
 	wcex.lpfnWndProc = SimpleWindow::Static_WndProc;
 
 	if (!SimpleWindow::RegisterWindowClass(wcex))
@@ -62,7 +62,6 @@ bool MonitorApp::Init()
 	PostMessage(_hMainWnd, WM_NULL, 1, 2);
 
 	auto hIcon = (HICON)::LoadImage(::GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_WINCON), IMAGE_ICON, 16, 16, 0);
-	//auto hIcon = ::LoadIcon(::GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_WINCON));
 	_trayIcon.Create(_hMainWnd, hIcon);
 
 	SetupWinEventHooks();
