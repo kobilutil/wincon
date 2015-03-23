@@ -220,6 +220,8 @@ void EnumWindows(T func)
 bool SuspendProcess(DWORD pid);
 bool ResumeProcess(DWORD pid);
 
+DWORD GetParentProcessId(DWORD pid = 0);
+
 rectangle	GetWindowRect(HWND hWnd);
 rectangle	GetClientRect(HWND hWnd);
 rectangle	MapWindowPoints(HWND hWndFrom, HWND hWndTo, rectangle const& r);

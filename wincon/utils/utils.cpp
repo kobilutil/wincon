@@ -153,6 +153,30 @@ static bool InternalSuspendResumeProcess(DWORD pid, bool suspend)
 	return false;
 }
 
+// http://stackoverflow.com/questions/185254/how-can-a-win32-process-get-the-pid-of-its-parent?lq=1
+DWORD GetParentProcessId(DWORD pid)
+{
+	if (!pid)
+		pid = ::GetCurrentProcessId();
+
+	scoped_handle h{ ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };
+
+	PROCESSENTRY32 pe{};
+	pe.dwSize = sizeof(pe);
+
+	if (::Process32First(h.get(), &pe)) 
+	{
+		do 
+		{
+			if (pe.th32ProcessID == pid)
+				return pe.th32ParentProcessID;
+		} 
+		while (::Process32Next(h.get(), &pe));
+	}
+
+	return 0;
+}
+
 rectangle GetWindowRect(HWND hWnd)
 {
 	RECT temp;

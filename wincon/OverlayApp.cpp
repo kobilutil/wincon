@@ -53,7 +53,7 @@ int OverlayApp::Run(HWND hWndConsole)
 
 	ConsoleHelper::InstallDefaultCtrlHandler();
 
-	SingleInstanceApp app(L"wincon-overlay-%lu-%s", ::GetConsoleWindow(), L"CE30069A-FA55-41B0-9DD1-DFF37132B6BB");
+	SingleInstanceApp app(L"wincon-OverlayApp-singleton-mutex-%lu-%s", ::GetConsoleWindow(), L"CE30069A-FA55-41B0-9DD1-DFF37132B6BB");
 	if (app.IsRunning())
 		return 1;
 
@@ -70,13 +70,37 @@ int OverlayApp::Run(HWND hWndConsole)
 		return 1;
 	}
 
-	// Main message loop:
-	::MSG msg{};
-	while (::GetMessage(&msg, NULL, 0, 0))
+	auto pidParent = GetParentProcessId();
+	scoped_handle hParent{ ::OpenProcess(SYNCHRONIZE, FALSE, pidParent) };
+	auto h = hParent.get();
+
+	MSG msg{};
+	while (msg.message != WM_QUIT)
 	{
-		::TranslateMessage(&msg);
-		::DispatchMessage(&msg);
+		auto ret = ::MsgWaitForMultipleObjects(1, &(h), FALSE, INFINITE, QS_ALLINPUT);
+
+		if (ret == WAIT_OBJECT_0)
+		{
+			debug_print("OverlayApp::Run - parent died. exiting\n");
+			break;
+		}
+		else if (ret == WAIT_OBJECT_0 + 1)
+		{
+			while (::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+			{
+				if (msg.message == WM_QUIT)
+					break;
+
+				::TranslateMessage(&msg);
+				::DispatchMessage(&msg);
+			}
+		}
+		else
+		{
+			debug_print("OverlayApp::Run - unexpected return %ud. exiting\n", ret);
+			return 1;
+		}
 	}
 
-	return (int)msg.wParam;
+	return 0;
 }
