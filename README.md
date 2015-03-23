@@ -9,14 +9,14 @@ Resizing and Selection for the Native Console
 - Maximize to largest available desktop size.
 
 ## Installation
-It is a 120kb single file executable, with no dependencies.
+It is a 135kb single file executable, with no dependencies.
 
 So [download][release], save and run.
 
 ## Running
-Double-clicking from the Explorer, wincon will launch %comspec% in a new console window and attach itself to it.
-
-Running from an existing console, will cause wincon to attach itself to that console.
+Double-clicking from the Explorer will launch wincon in its "monitoring" mode.<br/>
+An icon will be shown in the shell's tray area as an indicator that wincon monitor is running.<br/>
+For all currently open (and future) console windows another instance of wincon will be launch automatically in its "overlay" mode and attach itself to the console.
 
 ## Notes
 - ~~Resizing using the left side borders is not implemented yet.~~
