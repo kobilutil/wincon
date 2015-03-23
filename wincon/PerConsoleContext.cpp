@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "PerConsoleContext.h"
 
+#include <Shellapi.h>
 #include <Psapi.h>
 #pragma comment(lib, "Psapi.lib")
 
@@ -13,7 +14,7 @@ PerConsoleContext::PerConsoleContext(HWND consoleHwnd) :
 PerConsoleContext::~PerConsoleContext()
 {
 	// TODO: do a much better child's shutdown
-	::PostThreadMessage(helperProcess_.dwThreadId, WM_QUIT, 0, 0);
+	//::PostThreadMessage(helperProcess_.dwThreadId, WM_QUIT, 0, 0);
 
 	::CloseHandle(helperProcess_.hThread);
 	::CloseHandle(helperProcess_.hProcess);
@@ -21,19 +22,36 @@ PerConsoleContext::~PerConsoleContext()
 
 void PerConsoleContext::LaunchHelper()
 {
-	WCHAR path[MAX_PATH] = { 0 };
-	::GetModuleFileNameEx(::GetCurrentProcess(), nullptr, path, ARRAYSIZE(path));
+	auto hitTest = ::SendMessage(consoleHwnd_, WM_NCHITTEST, 0, MAKELPARAM(10, 10));
 
-	WCHAR cmdline[MAX_PATH] = {};
-	wsprintf(cmdline, L"\"%s\" --consoleHwnd %lu", path, consoleHwnd_);
+	::SetWindowPos(consoleHwnd_, NULL, 0, 0, 0, 0,
+		SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
+	bool isAdminRequired = (ERROR_ACCESS_DENIED == ::GetLastError());
 
-	PROCESS_INFORMATION pi = { 0 };
-	STARTUPINFOW si = { 0 };
-	si.cb = sizeof(si);
+	WCHAR path[MAX_PATH]{};
+	::GetModuleFileNameEx(::GetCurrentProcess(), NULL, path, ARRAYSIZE(path));
 
-	::CreateProcess(path, cmdline, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+	WCHAR cmdline[MAX_PATH]{};
+	::wsprintf(cmdline, L"--consoleHwnd %lu", consoleHwnd_);
 
-	helperProcess_ = pi;
+	SHELLEXECUTEINFO sei{};
+	sei.cbSize = sizeof(sei);
+	sei.lpVerb = isAdminRequired ? L"runas" : NULL;
+	sei.lpFile = path;
+	sei.lpParameters = cmdline;
+	sei.hwnd = NULL;
+	sei.nShow = SW_NORMAL;
+	sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+	if (!::ShellExecuteEx(&sei))
+	{
+		DWORD err = GetLastError();
+		if (err == ERROR_CANCELLED)
+		{
+		}
+	}
+
+	helperProcess_.dwProcessId = ::GetProcessId(sei.hProcess);
+	helperProcess_.hProcess = sei.hProcess;
 }
 
 void PerConsoleContext::AttachProcess(DWORD pid)

@@ -123,13 +123,12 @@ void MonitorApp::StartHelpersForExistingConsoles()
 		::FreeConsole();
 
 		auto ctx = make_shared<PerConsoleContext>(consoleHwnd);
+		_consoles[consoleHwnd] = ctx;
 
 		for (auto pid : pids)
 			ctx->AttachProcess(pid);
 
 		ctx->LaunchHelper();
-
-		_consoles[consoleHwnd] = ctx;
 
 		return TRUE;
 	});
@@ -152,10 +151,10 @@ void MonitorApp::OnWinEvent_ConsoleApplicationStarted(HWND consoleHwnd, DWORD pi
 	debug_print("ConsolesMonitorApp: begin monitoring console - hwnd=%lu, ownerpid=%lu\n", consoleHwnd, pid);
 
 	auto ctx = make_shared<PerConsoleContext>(consoleHwnd);
+	_consoles[consoleHwnd] = ctx;
+
 	ctx->AttachProcess(pid);
 	ctx->LaunchHelper();
-
-	_consoles[consoleHwnd] = ctx;
 
 	RefreshTrayIconTooltip();
 }
